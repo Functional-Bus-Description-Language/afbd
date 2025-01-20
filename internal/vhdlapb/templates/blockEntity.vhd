@@ -10,7 +10,7 @@ library ltypes;
    use ltypes.types.all;
 
 library work;
-   use work.wb3.all;
+   use work.apb.all;
 
 
 package {{.EntityName}}_pkg is
@@ -35,7 +35,7 @@ library ltypes;
    use ltypes.types.all;
 
 library work;
-   use work.wb3.all;
+   use work.apb.all;
    use work.{{.EntityName}}_pkg.all;
 
 

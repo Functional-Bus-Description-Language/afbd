@@ -5,7 +5,7 @@ func isValidTarget(target string) bool {
 		"c-sync":   true,
 		"json":     true,
 		"python":   true,
-		"vhdl-wb3": true,
+		"vhdl-apb": true,
 	}
 
 	if _, ok := validTargets[target]; ok {
@@ -23,8 +23,8 @@ func isValidFlag(flag string, target string) bool {
 		return isValidFlagJSON(flag)
 	case "python":
 		return isValidFlagPython(flag)
-	case "vhdl-wb3":
-		return isValidFlagVHDLWb3(flag)
+	case "vhdl-apb":
+		return isValidFlagVHDLAPB(flag)
 	default:
 		panic("should never happen")
 	}
@@ -67,7 +67,7 @@ func isValidFlagPython(flag string) bool {
 	return false
 }
 
-func isValidFlagVHDLWb3(flag string) bool {
+func isValidFlagVHDLAPB(flag string) bool {
 	validFlags := map[string]bool{
 		"-help":   true,
 		"-no-psl": true,
@@ -92,7 +92,7 @@ func isValidParam(param string, target string) bool {
 		return isValidParamJSON(param)
 	case "python":
 		return isValidParamPython(param)
-	case "vhdl-wb3":
+	case "vhdl-apb":
 		return isValidParamVHDL(param)
 	}
 

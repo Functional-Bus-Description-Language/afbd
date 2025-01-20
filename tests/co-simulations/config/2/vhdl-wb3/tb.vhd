@@ -59,8 +59,8 @@ begin
    atomicity_guardian : process (clk) is
    begin
       if rising_edge(clk) then
-         assert cfg = ZERO or cfg = std_logic_vector(resize(wb3.main_pkg.VALID_VALUE, 48))
-            report "invalid value: " & to_hstring(cfg) & ", expecting: " & to_hstring(std_logic_vector(wb3.main_pkg.VALID_VALUE))
+         assert cfg = ZERO or cfg = std_logic_vector(resize(apb.main_pkg.VALID_VALUE, 48))
+            report "invalid value: " & to_hstring(cfg) & ", expecting: " & to_hstring(std_logic_vector(apb.main_pkg.VALID_VALUE))
             severity failure;
       end if;
    end process;

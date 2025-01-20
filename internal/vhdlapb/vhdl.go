@@ -1,4 +1,4 @@
-package vhdlwb3
+package vhdlapb
 
 import (
 	"log"
@@ -20,7 +20,7 @@ func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package, cmdLineArgs map
 
 	err := os.MkdirAll(outputPath, os.FileMode(int(0775)))
 	if err != nil {
-		log.Fatalf("generate vhdl-wb3: %v", err)
+		log.Fatalf("generate vhdl-apb: %v", err)
 	}
 
 	blocks := utils.CollectBlocks(bus, nil, []string{})
@@ -29,7 +29,7 @@ func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package, cmdLineArgs map
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
-	genWb3Package(pkgsConsts)
+	genAPBPackage(pkgsConsts)
 
 	for _, b := range blocks {
 		wg.Add(1)

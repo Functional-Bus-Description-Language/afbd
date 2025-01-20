@@ -1,4 +1,4 @@
-package vhdlwb3
+package vhdlapb
 
 import (
 	_ "embed"
@@ -17,7 +17,7 @@ import (
 
 //go:embed templates/blockEntity.vhd
 var blockEntityTmplStr string
-var blockEntityTmpl = template.Must(template.New("vhdl-wb3 entity").Parse(blockEntityTmplStr))
+var blockEntityTmpl = template.Must(template.New("vhdl-apb entity").Parse(blockEntityTmplStr))
 
 type BlockEntityFormatters struct {
 	BusWidth   int64
@@ -112,13 +112,13 @@ func genBlock(b utils.Block, wg *sync.WaitGroup) {
 	filePath := outputPath + b.Name + ".vhd"
 	f, err := os.Create(filePath)
 	if err != nil {
-		log.Fatalf("generate vhdl-wb3: %v", err)
+		log.Fatalf("generate vhdl-apb: %v", err)
 	}
 	defer f.Close()
 
 	err = blockEntityTmpl.Execute(f, fmts)
 	if err != nil {
-		log.Fatalf("generate vhdl-wb3: %v", err)
+		log.Fatalf("generate vhdl-apb: %v", err)
 	}
 
 	addGeneratedFile(filePath)

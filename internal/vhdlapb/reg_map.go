@@ -1,4 +1,4 @@
-package vhdlwb3
+package vhdlapb
 
 type RegisterMap map[[2]int64]string
 

@@ -1,4 +1,4 @@
-package vhdlwb3
+package vhdlapb
 
 import (
 	"sync"

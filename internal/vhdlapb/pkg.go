@@ -1,4 +1,4 @@
-package vhdlwb3
+package vhdlapb
 
 import (
 	_ "embed"
@@ -10,28 +10,28 @@ import (
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/pkg"
 )
 
-//go:embed templates/wb3.vhd
-var wb3PkgStr string
-var wb3PkgTmpl = template.Must(template.New("VHDL wb3 package").Parse(wb3PkgStr))
+//go:embed templates/apb.vhd
+var apbPkgStr string
+var apbPkgTmpl = template.Must(template.New("VHDL apb package").Parse(apbPkgStr))
 
-type wb3PackageFormatters struct {
+type apbPackageFormatters struct {
 	PkgsConsts string
 }
 
-func genWb3Package(pkgsConsts map[string]*pkg.Package) {
-	filePath := outputPath + "wb3.vhd"
+func genAPBPackage(pkgsConsts map[string]*pkg.Package) {
+	filePath := outputPath + "apb.vhd"
 
 	f, err := os.Create(filePath)
 	if err != nil {
-		log.Fatalf("generate vhdl-wb3: %v", err)
+		log.Fatalf("generate vhdl-apb: %v", err)
 	}
 	defer f.Close()
 
-	fmts := wb3PackageFormatters{PkgsConsts: genPkgsConsts(pkgsConsts)}
+	fmts := apbPackageFormatters{PkgsConsts: genPkgsConsts(pkgsConsts)}
 
-	err = wb3PkgTmpl.Execute(f, fmts)
+	err = apbPkgTmpl.Execute(f, fmts)
 	if err != nil {
-		log.Fatalf("generate vhdl-wb3: %v", err)
+		log.Fatalf("generate vhdl-apb: %v", err)
 	}
 
 	addGeneratedFile(filePath)

@@ -15,11 +15,11 @@ namespace eval afbd {
 				"c-sync" -
 				"json" -
 				"python" -
-				"vhdl-wb3" {
+				"vhdl-apb" {
 					set target $arg
 				}
 				"-path" {
-					if {$target == "" || $target == "vhdl-wb3"} {
+					if {$target == "" || $target == "vhdl-apb"} {
 						set isPath 1
 					}
 				}
@@ -40,11 +40,11 @@ namespace eval afbd {
 
 			hbs::SetLib "afbd"
 
-			# wb3.vhd must be analyzed as the first one
-			hbs::AddFile "$vhdlFilesDir/wb3.vhd"
+			# apb.vhd must be analyzed as the first one
+			hbs::AddFile "$vhdlFilesDir/apb.vhd"
 			set files [glob "$vhdlFilesDir/*.vhd"]
 			foreach file $files {
-				if {[file tail $file] == "wb3.vhd"} {
+				if {[file tail $file] == "apb.vhd"} {
 					continue
 				}
 				hbs::AddFile $file

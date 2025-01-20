@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/access"
-	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/fn"
 	"github.com/Functional-Bus-Description-Language/afbd/internal/c"
 	"github.com/Functional-Bus-Description-Language/afbd/internal/utils"
+	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/access"
+	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/fn"
 )
 
 func genStatic(st *fn.Static, blk *fn.Block, hFmts *BlockHFormatters, cFmts *BlockCFormatters) {

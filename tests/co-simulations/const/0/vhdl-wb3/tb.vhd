@@ -15,10 +15,10 @@ architecture test of tb_cosim is
 
    signal clk : std_logic := '0';
 
-   signal st : std_logic_vector(to_integer(wb3.main_pkg.C) - 1 downto 0) := std_logic_vector(to_unsigned(to_integer(wb3.main_pkg.C), to_integer(wb3.main_pkg.C)));
+   signal st : std_logic_vector(to_integer(apb.main_pkg.C) - 1 downto 0) := std_logic_vector(to_unsigned(to_integer(apb.main_pkg.C), to_integer(apb.main_pkg.C)));
    signal stl : slv_vector(1 downto 0)(7 downto 0) := (
-      0 => std_logic_vector(to_unsigned(to_integer(wb3.main_pkg.CL(0)), 8)),
-      1 => std_logic_vector(to_unsigned(to_integer(wb3.main_pkg.CL(1)), 8))
+      0 => std_logic_vector(to_unsigned(to_integer(apb.main_pkg.CL(0)), 8)),
+      1 => std_logic_vector(to_unsigned(to_integer(apb.main_pkg.CL(1)), 8))
    );
 
    -- Wishbone interfaces.

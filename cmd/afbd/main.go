@@ -7,7 +7,7 @@ import (
 	"github.com/Functional-Bus-Description-Language/afbd/internal/csync"
 	"github.com/Functional-Bus-Description-Language/afbd/internal/json"
 	"github.com/Functional-Bus-Description-Language/afbd/internal/python"
-	"github.com/Functional-Bus-Description-Language/afbd/internal/vhdlwb3"
+	"github.com/Functional-Bus-Description-Language/afbd/internal/vhdlapb"
 
 	"fmt"
 	"log"
@@ -69,7 +69,7 @@ func main() {
 		python.Generate(bus, pkgsConsts, cmdLineArgs["python"])
 	}
 
-	if _, ok := cmdLineArgs["vhdl-wb3"]; ok {
-		vhdlwb3.Generate(bus, pkgsConsts, cmdLineArgs["vhdl-wb3"])
+	if _, ok := cmdLineArgs["vhdl-apb"]; ok {
+		vhdlapb.Generate(bus, pkgsConsts, cmdLineArgs["vhdl-apb"])
 	}
 }

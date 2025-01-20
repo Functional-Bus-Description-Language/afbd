@@ -4,8 +4,8 @@ context cosim_context is
       use ieee.numeric_std.all;
 
    library afbd;
-      use afbd.wb3;
-      use afbd.wb3.all;
+      use afbd.apb;
+      use afbd.apb.all;
 
    library general_cores;
       use general_cores.wishbone_pkg.all;

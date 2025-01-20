@@ -6,7 +6,7 @@ library ltypes;
    use ltypes.types.all;
 
 
-package wb3 is
+package apb is
 
 -- Packages constants
 {{.PkgsConsts}}

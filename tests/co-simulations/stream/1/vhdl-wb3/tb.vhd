@@ -35,7 +35,7 @@ architecture test of tb_cosim is
    signal result : result_t;
    signal result_stb : std_logic;
 
-   signal buff : slv_vector(0 to to_integer(wb3.main_pkg.DEPTH) - 1)(40 downto 0);
+   signal buff : slv_vector(0 to to_integer(apb.main_pkg.DEPTH) - 1)(40 downto 0);
    signal buff_write_ptr, buff_read_ptr : natural := 0;
 
 begin
@@ -93,7 +93,7 @@ begin
    begin
       if rising_edge(clk) then
          if result_stb = '1' then
-            buff_read_ptr <= (buff_read_ptr + 1) mod to_integer(wb3.main_pkg.DEPTH);
+            buff_read_ptr <= (buff_read_ptr + 1) mod to_integer(apb.main_pkg.DEPTH);
          end if;
       end if;
    end process;
