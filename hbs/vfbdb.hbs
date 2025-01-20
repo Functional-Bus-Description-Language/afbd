@@ -1,0 +1,56 @@
+namespace eval afbd {
+	proc _getVhdlFilesDir {args} {
+		set dir ""
+		set target ""
+		set isPath 0
+
+		foreach arg $args {
+			if {$isPath} {
+				set dir $arg
+				set isPath 0
+				continue
+			}
+
+			switch $arg {
+				"c-sync" -
+				"json" -
+				"python" -
+				"vhdl-wb3" {
+					set target $arg
+				}
+				"-path" {
+					if {$target == "" || $target == "vhdl-wb3"} {
+						set isPath 1
+					}
+				}
+			}
+		}
+
+		return [pwd]/$dir
+	}
+
+	proc gen {args} {
+		exec afbd {*}$args
+
+		set vhdlFilesDir [_getVhdlFilesDir {*}$args]
+		if {$vhdlFilesDir != ""} {
+			hbs::AddDep vhdl-types::src
+			hbs::AddDep cern::general-cores::wishbone-pkg::src
+			hbs::AddDep cern::general-cores::xwb-crossbar::src
+
+			hbs::SetLib "afbd"
+
+			# wb3.vhd must be analyzed as the first one
+			hbs::AddFile "$vhdlFilesDir/wb3.vhd"
+			set files [glob "$vhdlFilesDir/*.vhd"]
+			foreach file $files {
+				if {[file tail $file] == "wb3.vhd"} {
+					continue
+				}
+				hbs::AddFile $file
+			}
+		}
+	}
+
+	hbs::Register
+}

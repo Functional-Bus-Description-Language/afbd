@@ -1,0 +1,2 @@
+#include "afbd.h"
+{{.Code}}

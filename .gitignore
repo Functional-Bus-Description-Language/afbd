@@ -1,0 +1,7 @@
+/bus.fbd
+vfbdb
+output/
+build/
+autogen/
+_fsva/
+*.pyc
