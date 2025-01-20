@@ -7,7 +7,7 @@
 
 #include "afbd.h"
 #include "Main.h"
-#define VFBDB_IFACE &iface
+#define AFBD_IFACE &iface
 
 
 int main(int argc, char *argv[]) {

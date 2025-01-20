@@ -1,4 +1,4 @@
-module github.com/Functional-Bus-Description-Language/go-vfbdb
+module github.com/Functional-Bus-Description-Language/afbd
 
 go 1.22.1
 
