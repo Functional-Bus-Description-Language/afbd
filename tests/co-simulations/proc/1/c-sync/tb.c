@@ -5,7 +5,7 @@
 
 #include "cosim_iface.h"
 
-#include "vfbdb.h"
+#include "afbd.h"
 #include "Main.h"
 #define VFBDB_IFACE &iface
 
@@ -13,7 +13,7 @@
 int main(int argc, char *argv[]) {
 	assert(argc == 3);
 
-	vfbdb_iface_t iface = cosim_iface_iface();
+	afbd_iface_t iface = cosim_iface_iface();
 
 	cosim_iface_init(argv[1], argv[2], NULL);
 
@@ -27,14 +27,14 @@ int main(int argc, char *argv[]) {
 
 	uint32_t err;
 
-	err = vfbdb_Main_Add(&iface, a, b);
+	err = afbd_Main_Add(&iface, a, b);
 	if (err) {
 		fprintf(stderr, "error calling Add function: %d", err);
 		cosim_iface_end(1);
 	}
 
 	uint32_t result;
-	err = vfbdb_read(Main_Result, &result);
+	err = afbd_read(Main_Result, &result);
 	if (err) {
 		fprintf(stderr, "error reading Result: %d", err);
 		cosim_iface_end(1);

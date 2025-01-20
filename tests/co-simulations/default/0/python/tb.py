@@ -1,7 +1,7 @@
 import sys
 
 import cosim
-import vfbdb
+import afbd
 
 
 WRITE_FIFO_PATH = sys.argv[1]
@@ -10,7 +10,7 @@ READ_FIFO_PATH = sys.argv[2]
 iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
 try:
-    Main = vfbdb.Main(iface)
+    Main = afbd.Main(iface)
 
     expected0 = 0b010101
     expected1 = 0b11

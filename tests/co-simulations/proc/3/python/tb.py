@@ -3,7 +3,7 @@ import sys
 import traceback
 
 import cosim
-import vfbdb
+import afbd
 
 WRITE_FIFO_PATH = sys.argv[1]
 READ_FIFO_PATH = sys.argv[2]
@@ -12,7 +12,7 @@ READ_FIFO_PATH = sys.argv[2]
 try:
     iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
-    Main = vfbdb.Main(iface)
+    Main = afbd.Main(iface)
 
     s = random.randint(0, 2 ** 16 - 1)
     c = random.randint(2**33, 2 ** 40 - 1)

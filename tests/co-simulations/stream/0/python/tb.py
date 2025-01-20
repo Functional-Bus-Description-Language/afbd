@@ -3,7 +3,7 @@ import traceback
 import sys
 
 import cosim
-import vfbdb
+import afbd
 
 WRITE_FIFO_PATH = sys.argv[1]
 READ_FIFO_PATH = sys.argv[2]
@@ -12,7 +12,7 @@ READ_FIFO_PATH = sys.argv[2]
 try:
     iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
-    Main = vfbdb.Main(iface)
+    Main = afbd.Main(iface)
 
     N = random.randint(1, 32)
     print(f"Reading FIFO stream {N} times")

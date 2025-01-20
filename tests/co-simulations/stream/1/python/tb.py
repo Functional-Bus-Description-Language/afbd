@@ -3,7 +3,7 @@ import sys
 import traceback
 
 import cosim
-import vfbdb
+import afbd
 
 WRITE_FIFO_PATH = sys.argv[1]
 READ_FIFO_PATH = sys.argv[2]
@@ -12,20 +12,20 @@ READ_FIFO_PATH = sys.argv[2]
 try:
     iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
-    Main = vfbdb.Main(iface)
+    Main = afbd.Main(iface)
 
     data = []
-    for i in range(vfbdb.mainPkg.DEPTH):
+    for i in range(afbd.mainPkg.DEPTH):
         dataset = []
         dataset.append(random.randint(0, 2 ** Main.Add.params[0]['Width'] - 1))
         dataset.append(random.randint(0, 2 ** Main.Add.params[1]['Width'] - 1))
         dataset.append(random.randint(0, 2 ** Main.Add.params[2]['Width'] - 1))
         data.append(dataset)
 
-    print(f"Writing downstream {vfbdb.mainPkg.DEPTH} times")
+    print(f"Writing downstream {afbd.mainPkg.DEPTH} times")
     Main.Add.write(data)
 
-    results = Main.Result.read(vfbdb.mainPkg.DEPTH)
+    results = Main.Result.read(afbd.mainPkg.DEPTH)
 
     for i, dataset in enumerate(data):
         got = results[i][0]

@@ -2,7 +2,7 @@ import sys
 import traceback
 
 import cosim
-import vfbdb
+import afbd
 
 
 WRITE_FIFO_PATH = sys.argv[1]
@@ -11,9 +11,9 @@ READ_FIFO_PATH = sys.argv[2]
 iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
 try:
-    Main = vfbdb.Main(iface)
+    Main = afbd.Main(iface)
 
-    max_val = 2 ** vfbdb.Main.WIDTH - 1
+    max_val = 2 ** afbd.Main.WIDTH - 1
 
     print("\nTesting Mask setting")
     Main.Mask.set()

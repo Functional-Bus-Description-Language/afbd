@@ -2,7 +2,7 @@ import sys
 import traceback
 
 import cosim
-import vfbdb
+import afbd
 
 WRITE_FIFO_PATH = sys.argv[1]
 READ_FIFO_PATH = sys.argv[2]
@@ -11,7 +11,7 @@ READ_FIFO_PATH = sys.argv[2]
 try:
     iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
-    Main = vfbdb.Main(iface)
+    Main = afbd.Main(iface)
 
     for i in range(10):
         print(f"calling foo function")

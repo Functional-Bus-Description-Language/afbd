@@ -198,8 +198,8 @@ void cosim_iface_init(char *wr_fifo_path, char *rd_fifo_path, delay_function_t d
 	}
 }
 
-vfbdb_iface_t cosim_iface_iface(void) {
-	vfbdb_iface_t iface = {
+afbd_iface_t cosim_iface_iface(void) {
+	afbd_iface_t iface = {
 		read: cosim_iface_read,
 		write: cosim_iface_write,
 		readb: cosim_iface_readb,

@@ -1,7 +1,7 @@
 import sys
 
 import cosim
-import vfbdb
+import afbd
 
 WRITE_FIFO_PATH = sys.argv[1]
 READ_FIFO_PATH = sys.argv[2]
@@ -9,7 +9,7 @@ READ_FIFO_PATH = sys.argv[2]
 try:
     iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
-    Main = vfbdb.Main(iface)
+    Main = afbd.Main(iface)
 
     values = Main.Status_array.read()
     assert len(values) == 9

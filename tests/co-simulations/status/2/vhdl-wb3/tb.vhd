@@ -55,7 +55,7 @@ begin
    cosim_interface(G_SW_GW_FIFO_PATH, G_GW_SW_FIFO_PATH, clk, uvvm_wb_if, C_WB_BFM_CONFIG);
 
 
-   vfbdb_main : entity vfbdb.main
+   afbd_main : entity afbd.main
    port map (
       clk_i => clk,
       rst_i => '0',

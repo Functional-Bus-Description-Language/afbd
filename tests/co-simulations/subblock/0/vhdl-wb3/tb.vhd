@@ -45,7 +45,7 @@ begin
    cosim_interface(G_SW_GW_FIFO_PATH, G_GW_SW_FIFO_PATH, clk, uvvm_wb_if, C_WB_BFM_CONFIG);
 
 
-   vfbdb_main : entity vfbdb.Main
+   afbd_main : entity afbd.Main
    port map (
       clk_i => clk,
       rst_i => '0',
@@ -58,7 +58,7 @@ begin
    );
 
 
-   vfbdb_blk0 : entity vfbdb.Blk0
+   afbd_blk0 : entity afbd.Blk0
    port map (
       clk_i => clk,
       rst_i => '0',
@@ -69,7 +69,7 @@ begin
    );
 
 
-   vfbdb_blk1 : entity vfbdb.Blk1
+   afbd_blk1 : entity afbd.Blk1
    port map (
       clk_i => clk,
       rst_i => '0',
@@ -82,7 +82,7 @@ begin
    );
 
 
-   vfbdb_blk2 : entity vfbdb.Blk2
+   afbd_blk2 : entity afbd.Blk2
    port map (
       clk_i => clk,
       rst_i => '0',

@@ -2,7 +2,7 @@ import sys
 import traceback
 
 import cosim
-import vfbdb
+import afbd
 
 
 WRITE_FIFO_PATH = sys.argv[1]
@@ -13,7 +13,7 @@ CLK_PERIOD = 10
 iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
 try:
-    Main = vfbdb.Main(iface)
+    Main = afbd.Main(iface)
 
     id = Main.ID.read()
     assert id == Main.ID.value, f"Read wrong ID {id}, expecting {Main.ID.value}"
