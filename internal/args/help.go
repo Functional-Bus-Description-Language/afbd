@@ -12,7 +12,7 @@ Supported targets:
   - c-sync    C target with synchronous (blocking) interface functions,
   - json      JSON target,
   - python    Python target,
-  - vhdl-wb3  VHDL target for Wishbone compilant with revision B.3.
+  - vhdl-apb  VHDL target for APB.
 To check valid flags and parameters for a given target type: 'afbd {target} -help'.
 
 Usage:
@@ -48,8 +48,8 @@ func printTargetHelp(target string) {
 		fmt.Print(jsonHelpMsg)
 	case "python":
 		fmt.Print(pythonHelpMsg)
-	case "vhdl-wb3":
-		fmt.Print(vhdlWb3HelpMsg)
+	case "vhdl-apb":
+		fmt.Print(vhdlAPBHelpMsg)
 	default:
 		panic("should never happen")
 	}
@@ -78,7 +78,7 @@ Parameters:
   -path  Path for output files.
 `
 
-var vhdlWb3HelpMsg string = `Afbd help for vhdl-wb3 target.
+var vhdlAPBHelpMsg string = `Afbd help for vhdl-apb target.
 
 Flags:
   -help   Display help.
