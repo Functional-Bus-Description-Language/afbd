@@ -7,8 +7,8 @@ import (
 	"sync"
 	"text/template"
 
-	"github.com/Functional-Bus-Description-Language/go-afbd/internal/c"
-	"github.com/Functional-Bus-Description-Language/go-afbd/internal/utils"
+	"github.com/Functional-Bus-Description-Language/afbd/internal/c"
+	"github.com/Functional-Bus-Description-Language/afbd/internal/utils"
 
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/fn"
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/pkg"
