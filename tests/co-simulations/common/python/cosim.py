@@ -55,6 +55,8 @@ class Iface:
         addr  - register address
         data  - data to be written
         """
+        addr = addr * 4
+
         if self.delay:
             self.wait(self.delay_function())
 
@@ -77,6 +79,8 @@ class Iface:
         """Single Read
         addr - register address
         """
+        addr = addr * 4
+
         if self.delay:
             self.wait(self.delay_function())
 

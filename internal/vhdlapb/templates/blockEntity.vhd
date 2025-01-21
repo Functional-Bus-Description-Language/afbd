@@ -55,14 +55,14 @@ constant C_ADDRS : apb.addr_array_t({{.SubblocksCount}} downto 0) := ({{.Address
 constant C_MASKS : apb.mask_array_t({{.SubblocksCount}} downto 0) := ({{.MaskValues}});
 
 signal apb_req : apb.requester_out_t;
-signal apb_com : apb.comleter_out_t;
+signal apb_com : apb.completer_out_t;
 
 {{.SignalDeclarations}}
 begin
 
 Shared_Bus: entity lapb.Shared_Bus
 generic map (
-  REPORT_PREFIX   => "apb: shared bus: {{.EntityNamel}}: ",
+  REPORT_PREFIX   => "apb: shared bus: {{.EntityName}}: ",
   REQUESTER_COUNT => {{.MastersCount}},
   COMPLETER_COUNT => {{.SubblocksCount}} + 1,
   ADDRS => C_ADDRS,
@@ -88,13 +88,13 @@ if rising_edge(clk_i) then
 -- Normal operation.
 -- Currently the block is implemented in such a way that it is always ready.
 apb_com.ready <= '1';
-apb_com..slverr <= '0';
+apb_com.slverr <= '0';
 
 -- Procs Calls Clear{{.ProcsCallsClear}}
 -- Procs Exits Clear{{.ProcsExitsClear}}
 -- Stream Strobes Clear{{.StreamsStrobesClear}}
 
-transfer : if apb_req.selx =  then
+transfer : if apb_req.selx = '1' then
    -- Internal register address, not byte address.
    addr := to_integer(unsigned(apb_req.addr({{.InternalAddrBitsCount}} - 1 + 2 downto 2)));
 

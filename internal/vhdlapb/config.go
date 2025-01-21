@@ -63,7 +63,7 @@ func genConfigSingleOneReg(cfg *fn.Config, fmts *BlockEntityFormatters) {
 
 	code := fmt.Sprintf(`
       if apb_req.write = '1' then
-         %[1]s_o <= apb_req.data(%[2]d downto %[3]d);
+         %[1]s_o <= apb_req.wdata(%[2]d downto %[3]d);
       end if;
       apb_com.rdata(%[2]d downto %[3]d) <= %[1]s_o;`,
 		cfg.Name, acs.EndBit(), acs.StartBit(),

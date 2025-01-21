@@ -6,11 +6,11 @@ context cosim_context is
   library lapb;
     use lapb.apb.all;
 
+  library ltypes;
+    use ltypes.types.all;
+
   library afbd;
     use afbd.apb;
     use afbd.apb.all;
-
-  library ltypes;
-    use ltypes.types.all;
 
 end context;

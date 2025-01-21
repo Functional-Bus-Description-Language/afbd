@@ -35,8 +35,7 @@ namespace eval afbd {
 		set vhdlFilesDir [_getVhdlFilesDir {*}$args]
 		if {$vhdlFilesDir != ""} {
 			hbs::AddDep vhdl-types::src
-			hbs::AddDep cern::general-cores::wishbone-pkg::src
-			hbs::AddDep cern::general-cores::xwb-crossbar::src
+			hbs::AddDep vhdl::amba5::apb::shared-bus::src
 
 			hbs::SetLib "afbd"
 

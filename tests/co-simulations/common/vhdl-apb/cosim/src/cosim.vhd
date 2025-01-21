@@ -12,36 +12,13 @@ library lapb;
 
 package cosim is
 
-  constant C_CLK_PERIOD : time := 10 ns;
-
-  constant C_WB_BFM_CONFIG : t_wishbone_bfm_config := (
-     max_wait_cycles          => 10,
-     max_wait_cycles_severity => failure,
-     clock_period             => C_CLK_PERIOD,
-     clock_period_margin      => 0 ns,
-     clock_margin_severity    => TB_ERROR,
-     setup_time               => 2.5 ns,
-     hold_time                => 2.5 ns,
-     match_strictness         => MATCH_STD,
-     id_for_bfm               => ID_BFM,
-     id_for_bfm_wait          => ID_BFM_WAIT,
-     id_for_bfm_poll          => ID_BFM_POLL
-  );
-
-
-  procedure uvvm_to_gc_wishbone_adapter (
-    signal uvvm_wb_if : inout t_wishbone_if;
-    signal gc_wb_ms   : inout t_wishbone_master_out;
-    signal gc_wb_sm   : inout t_wishbone_master_in
-  );
-
-
   procedure cosim_interface (
     constant read_fifo_path : string;
     constant write_fifo_path : string;
-    signal wb_clk : in std_logic;
-    signal uvvm_wb_if : inout t_wishbone_if;
-    constant wb_bfm_config : t_wishbone_bfm_config
+    signal clk : in std_logic;
+    signal req : inout requester_out_t;
+    signal com : in  completer_out_t;
+    constant bfm_config : bfm.config_t := bfm.DEFAULT_CONFIG
  );
 
 end package;
@@ -49,42 +26,23 @@ end package;
 
 package body cosim is
 
-  procedure uvvm_to_gc_wishbone_adapter (
-    signal uvvm_wb_if : inout t_wishbone_if;
-    signal gc_wb_ms   : inout t_wishbone_master_out;
-    signal gc_wb_sm   : inout t_wishbone_master_in
-  ) is
-  begin
-    -- General Cores WB <= UVVM WB
-    gc_wb_ms.cyc <= uvvm_wb_if.cyc_o;
-    gc_wb_ms.stb <= uvvm_wb_if.stb_o;
-    gc_wb_ms.adr <= uvvm_wb_if.adr_o;
-    gc_wb_ms.sel <= (others => '0');
-    gc_wb_ms.we  <= uvvm_wb_if.we_o;
-    gc_wb_ms.dat <= uvvm_wb_if.dat_o;
-
-    -- UVVM WB <= General Cores WB
-    uvvm_wb_if.dat_i <= gc_wb_sm.dat;
-    uvvm_wb_if.ack_i <= gc_wb_sm.ack;
-  end procedure;
-
-
   procedure cosim_interface (
     constant read_fifo_path : string;
     constant write_fifo_path : string;
-    signal wb_clk : in std_logic;
-    signal uvvm_wb_if : inout t_wishbone_if;
-    constant wb_bfm_config : t_wishbone_bfm_config
+    signal clk : in std_logic;
+    signal req : inout requester_out_t;
+    signal com : in  completer_out_t;
+    constant bfm_config : bfm.config_t := bfm.DEFAULT_CONFIG
   ) is
-    file wr_pipe  : text;
-    file rd_pipe   : text;
+    file wr_pipe : text;
+    file rd_pipe : text;
 
     variable code    : character;
     variable rd_line : line;
     variable wr_line : line;
 
     variable addr : unsigned(31 downto 0);
-    variable val  : std_logic_vector(31 downto 0);
+    variable data : std_logic_vector(31 downto 0);
 
     variable end_status : integer;
   begin
@@ -102,9 +60,9 @@ package body cosim is
         if code /= ',' then
           report "wrong separator in the write command" severity error;
         end if;
-        hread(rd_line, val);
+        hread(rd_line, data);
 
-        wishbone_write(addr, val, "cosim interface", wb_clk, uvvm_wb_if, config => wb_bfm_config);
+        bfm.write(addr, data, clk, req, com, cfg => bfm_config);
 
         write(wr_line, string'("ACK"));
         writeline(wr_pipe, wr_line);
@@ -112,15 +70,15 @@ package body cosim is
       when 'R' =>
         hread(rd_line, addr);
 
-        wishbone_read(addr, val, "cosim interface", wb_clk, uvvm_wb_if, config => wb_bfm_config);
+        bfm.read(addr, clk, req, com, cfg => bfm_config);
 
-        write(wr_line, to_string(val));
+        write(wr_line, to_string(com.rdata));
         writeline(wr_pipe, wr_line);
         flush(wr_pipe);
       when 'T' =>
-        hread(rd_line, val);
+        hread(rd_line, data);
 
-        wait for to_integer(unsigned(val)) * 1 ns;
+        wait for to_integer(unsigned(data)) * 1 ns;
 
         write(wr_line, string'("ACK"));
         writeline(wr_pipe, wr_line);
