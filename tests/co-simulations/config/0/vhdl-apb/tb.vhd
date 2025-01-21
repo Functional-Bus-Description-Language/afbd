@@ -22,7 +22,7 @@ architecture test of tb_cosim is
 
 begin
 
-  clk <= not clk after 0.5 ns / 2;
+  clk <= not clk after 0.5 ns;
 
   cosim_interface(G_SW_GW_FIFO_PATH, G_GW_SW_FIFO_PATH, clk, req, com);
 
