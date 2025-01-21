@@ -16,6 +16,7 @@ namespace eval utils {
 		hbs::AddDep afbd::gen \
 			$hdl -path autogen/$ctx/tb-$sw \
 			$sw -path autogen/$ctx/tb-$sw \
+			json -path autogen/$ctx \
 			[hbs::CoreDir]/../bus.fbd
 
 		hbs::AddDep $hdl\::cosim::src
