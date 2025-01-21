@@ -3,14 +3,14 @@
 -- https://github.com/Functional-Bus-Description-Language/afbd
 
 library ieee;
-   use ieee.std_logic_1164.all;
-   use ieee.numeric_std.all;
+  use ieee.std_logic_1164.all;
+  use ieee.numeric_std.all;
 
 library ltypes;
-   use ltypes.types.all;
+  use ltypes.types.all;
 
 library work;
-   use work.apb.all;
+  use work.apb.all;
 
 
 package {{.EntityName}}_pkg is
@@ -25,58 +25,55 @@ end package;
 
 
 library ieee;
-   use ieee.std_logic_1164.all;
-   use ieee.numeric_std.all;
+  use ieee.std_logic_1164.all;
+  use ieee.numeric_std.all;
 
-library general_cores;
-   use general_cores.wishbone_pkg.all;
+library lapb;
+  use lapb.apb;
 
 library ltypes;
-   use ltypes.types.all;
+  use ltypes.types.all;
 
 library work;
-   use work.apb.all;
-   use work.{{.EntityName}}_pkg.all;
+  use work.apb.all;
+  use work.{{.EntityName}}_pkg.all;
 
 
 entity {{.EntityName}} is
-generic (
-   G_REGISTERED : boolean := true
-);
 port (
    clk_i : in std_logic;
    rst_i : in std_logic;
-   slave_i : in  t_wishbone_slave_in_array ({{.MastersCount}} - 1 downto 0);
-   slave_o : out t_wishbone_slave_out_array({{.MastersCount}} - 1 downto 0){{.EntitySubblockPorts}}{{.EntityFunctionalPorts}}
+   apb_reqs_i : in  apb.requester_out_array_t({{.MastersCount}} - 1 downto 0);
+   apb_reqs_o : out apb.requester_in_array_t ({{.MastersCount}} - 1 downto 0){{.EntitySubblockPorts}}{{.EntityFunctionalPorts}}
 );
 end entity;
 
 
 architecture rtl of {{.EntityName}} is
 
-constant C_ADDRESSES : t_wishbone_address_array({{.SubblocksCount}} downto 0) := ({{.AddressValues}});
-constant C_MASKS     : t_wishbone_address_array({{.SubblocksCount}} downto 0) := ({{.MaskValues}});
+constant C_ADDRS : apb.addr_array_t({{.SubblocksCount}} downto 0) := ({{.AddressValues}});
+constant C_MASKS : apb.mask_array_t({{.SubblocksCount}} downto 0) := ({{.MaskValues}});
 
-signal master_out : t_wishbone_master_out;
-signal master_in  : t_wishbone_master_in;
+signal apb_req : apb.requester_out_t;
+signal apb_com : apb.comleter_out_t;
 
 {{.SignalDeclarations}}
 begin
 
-crossbar: entity general_cores.xwb_crossbar
+Shared_Bus: entity lapb.Shared_Bus
 generic map (
-   G_NUM_MASTERS => {{.MastersCount}},
-   G_NUM_SLAVES  => {{.SubblocksCount}} + 1,
-   G_REGISTERED  => G_REGISTERED,
-   G_ADDRESS     => C_ADDRESSES,
-   G_MASK        => C_MASKS
+  REPORT_PREFIX   => "apb: shared bus: {{.EntityNamel}}: ",
+  REQUESTER_COUNT => {{.MastersCount}},
+  COMPLETER_COUNT => {{.SubblocksCount}} + 1,
+  ADDRS => C_ADDRS,
+  MASKS => C_MASKS
 ) port map (
-   clk_sys_i   => clk_i,
-   rst_n_i     => not rst_i,
-   slave_i     => slave_i,
-   slave_o     => slave_o,
-   master_i(0) => master_in,{{.CrossbarSubblockPortsIn}}
-   master_o(0) => master_out{{.CrossbarSubblockPortsOut}}
+  arstn_i => not rst_i,
+  clk_i   => clk_i,
+  reqs_i  => apb_reqs_i,
+  reqs_o  => apb_reqs_o,
+  coms_i(0) => apb_com,{{.CrossbarSubblockPortsIn}}
+  coms_o(0) => apb_req{{.CrossbarSubblockPortsOut}}
 );
 
 
@@ -89,36 +86,29 @@ begin
 if rising_edge(clk_i) then
 
 -- Normal operation.
-master_in.rty <= '0';
-master_in.ack <= '0';
-master_in.err <= '0';
+-- Currently the block is implemented in such a way that it is always ready.
+apb_com.ready <= '1';
+apb_com..slverr <= '0';
 
 -- Procs Calls Clear{{.ProcsCallsClear}}
 -- Procs Exits Clear{{.ProcsExitsClear}}
 -- Stream Strobes Clear{{.StreamsStrobesClear}}
 
-transfer : if
-   master_out.cyc = '1'
-   and master_out.stb = '1'
-   and master_in.err = '0'
-   and master_in.rty = '0'
-   and master_in.ack = '0'
-then
-   addr := to_integer(unsigned(master_out.adr({{.InternalAddrBitsCount}} - 1 downto 0)));
+transfer : if apb_req.selx =  then
+   -- Internal register address, not byte address.
+   addr := to_integer(unsigned(apb_req.addr({{.InternalAddrBitsCount}} - 1 + 2 downto 2)));
 
    -- First assume there is some kind of error.
    -- For example internal address is invalid or there is a try to write status.
-   master_in.err <= '1';
+   apb_com.slverr <= '1';
    -- '0' for security reasons, '-' can lead to the information leak.
-   master_in.dat <= (others => '0');
-   master_in.ack <= '0';
+   apb_com.rdata <= (others => '0');
 
    -- Registers Access{{range $addr, $code := .RegistersAccess}}
    if {{index $addr 0}} <= addr and addr <= {{index $addr 1}} then
 {{$code}}
 
-      master_in.ack <= '1';
-      master_in.err <= '0';
+      apb_com.slverr <= '0';
    end if;
 {{end}}
 
@@ -129,7 +119,7 @@ then
 end if transfer;
 
 if rst_i = '1' then
-   master_in <= C_DUMMY_WB_MASTER_IN;
+  apb_com.slverr <= '0';
 end if;
 end if;
 end process register_access;

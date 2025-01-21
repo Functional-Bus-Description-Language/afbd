@@ -72,7 +72,7 @@ func genUpstreamAccess(stream *fn.Stream, fmts *BlockEntityFormatters) {
 		case access.SingleOneReg:
 			addr := [2]int64{acs.StartAddr(), acs.StartAddr()}
 			code := fmt.Sprintf(
-				"      master_in.dat(%d downto %d) <= %s_i.%s;\n",
+				"      apb_com.rdata(%d downto %d) <= %s_i.%s;\n",
 				acs.EndBit(), acs.StartBit(), stream.Name, r.Name,
 			)
 
@@ -82,7 +82,7 @@ func genUpstreamAccess(stream *fn.Stream, fmts *BlockEntityFormatters) {
 
 			for _, c := range chunks {
 				code := fmt.Sprintf(
-					"      master_in.dat(%[5]d downto %[6]d) <= %[1]s_i.%[2]s(%[3]s downto %[4]s);",
+					"      apb_com.rdata(%[5]d downto %[6]d) <= %[1]s_i.%[2]s(%[3]s downto %[4]s);",
 					stream.Name, r.Name, c.range_[0], c.range_[1], c.endBit, c.startBit,
 				)
 
@@ -100,8 +100,8 @@ func genDownstreamAccess(stream *fn.Stream, fmts *BlockEntityFormatters) {
 		case access.SingleOneReg:
 			addr := [2]int64{acs.StartAddr(), acs.StartAddr()}
 			code := fmt.Sprintf(`
-      if master_out.we = '1' then
-         %s_o.%s <= master_out.dat(%d downto %d);
+      if apb_req.write = '1' then
+         %s_o.%s <= apb_req.wdata(%d downto %d);
       end if;
 `,
 				stream.Name, p.Name, acs.EndBit(), acs.StartBit(),
@@ -113,8 +113,8 @@ func genDownstreamAccess(stream *fn.Stream, fmts *BlockEntityFormatters) {
 
 			for _, c := range chunks {
 				code := fmt.Sprintf(`
-      if master_out.we = '1' then
-         %[1]s_o.%[2]s(%[3]s downto %[4]s) <= master_out.dat(%[5]d downto %[6]d);
+      if apb_req.write = '1' then
+         %[1]s_o.%[2]s(%[3]s downto %[4]s) <= apb_req.wdata(%[5]d downto %[6]d);
       end if;
 `,
 					stream.Name, p.Name, c.range_[0], c.range_[1], c.endBit, c.startBit,
@@ -140,7 +140,7 @@ func genStreamStrobe(stream *fn.Stream, fmts *BlockEntityFormatters) {
 
 	stbSet := `
    %s_stb : if addr = %d then
-      if master_out.we = '%s' then
+      if apb_req.write = '%s' then
          %[1]s_stb_o <= '1';
       end if;
    end if;
