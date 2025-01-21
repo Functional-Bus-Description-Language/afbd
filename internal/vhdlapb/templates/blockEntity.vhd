@@ -43,8 +43,8 @@ entity {{.EntityName}} is
 port (
    clk_i : in std_logic;
    rst_i : in std_logic;
-   apb_reqs_i : in  apb.requester_out_array_t({{.MastersCount}} - 1 downto 0);
-   apb_reqs_o : out apb.requester_in_array_t ({{.MastersCount}} - 1 downto 0){{.EntitySubblockPorts}}{{.EntityFunctionalPorts}}
+   reqs_i : in  apb.requester_out_array_t({{.MastersCount}} - 1 downto 0);
+   reqs_o : out apb.requester_in_array_t ({{.MastersCount}} - 1 downto 0){{.EntitySubblockPorts}}{{.EntityFunctionalPorts}}
 );
 end entity;
 
@@ -54,8 +54,8 @@ architecture rtl of {{.EntityName}} is
 constant C_ADDRS : apb.addr_array_t({{.SubblocksCount}} downto 0) := ({{.AddressValues}});
 constant C_MASKS : apb.mask_array_t({{.SubblocksCount}} downto 0) := ({{.MaskValues}});
 
-signal apb_req : apb.requester_out_t;
-signal apb_com : apb.completer_out_t;
+signal req : apb.requester_out_t;
+signal com : apb.completer_out_t;
 
 {{.SignalDeclarations}}
 begin
@@ -70,10 +70,10 @@ generic map (
 ) port map (
   arstn_i => not rst_i,
   clk_i   => clk_i,
-  reqs_i  => apb_reqs_i,
-  reqs_o  => apb_reqs_o,
-  coms_i(0) => apb_com,{{.CrossbarSubblockPortsIn}}
-  coms_o(0) => apb_req{{.CrossbarSubblockPortsOut}}
+  reqs_i  => reqs_i,
+  reqs_o  => reqs_o,
+  coms_i(0) => com,{{.CrossbarSubblockPortsIn}}
+  coms_o(0) => req{{.CrossbarSubblockPortsOut}}
 );
 
 
@@ -87,28 +87,28 @@ if rising_edge(clk_i) then
 
 -- Normal operation.
 -- Currently the block is implemented in such a way that it is always ready.
-apb_com.ready <= '1';
-apb_com.slverr <= '0';
+com.ready <= '1';
+com.slverr <= '0';
 
 -- Procs Calls Clear{{.ProcsCallsClear}}
 -- Procs Exits Clear{{.ProcsExitsClear}}
 -- Stream Strobes Clear{{.StreamsStrobesClear}}
 
-transfer : if apb_req.selx = '1' then
+transfer : if req.selx = '1' then
    -- Internal register address, not byte address.
-   addr := to_integer(unsigned(apb_req.addr({{.InternalAddrBitsCount}} - 1 + 2 downto 2)));
+   addr := to_integer(unsigned(req.addr({{.InternalAddrBitsCount}} - 1 + 2 downto 2)));
 
    -- First assume there is some kind of error.
    -- For example internal address is invalid or there is a try to write status.
-   apb_com.slverr <= '1';
+   com.slverr <= '1';
    -- '0' for security reasons, '-' can lead to the information leak.
-   apb_com.rdata <= (others => '0');
+   com.rdata <= (others => '0');
 
    -- Registers Access{{range $addr, $code := .RegistersAccess}}
    if {{index $addr 0}} <= addr and addr <= {{index $addr 1}} then
 {{$code}}
 
-      apb_com.slverr <= '0';
+      com.slverr <= '0';
    end if;
 {{end}}
 
@@ -119,7 +119,7 @@ transfer : if apb_req.selx = '1' then
 end if transfer;
 
 if rst_i = '1' then
-  apb_com.slverr <= '0';
+  com.slverr <= '0';
 end if;
 end if;
 end process register_access;

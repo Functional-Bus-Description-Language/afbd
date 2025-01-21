@@ -42,10 +42,10 @@ func genMaskSingleOneReg(mask *fn.Mask, fmts *BlockEntityFormatters) {
 	acs := mask.Access.(access.SingleOneReg)
 
 	code := fmt.Sprintf(`
-      if apb_req.write = '1' then
-         %[1]s_o <= apb_req.wdata(%[2]d downto %[3]d);
+      if req.write = '1' then
+         %[1]s_o <= req.wdata(%[2]d downto %[3]d);
       end if;
-      apb_com.rdata(%[2]d downto %[3]d) <= %[1]s_o;`,
+      com.rdata(%[2]d downto %[3]d) <= %[1]s_o;`,
 		mask.Name, acs.EndBit(), acs.StartBit(),
 	)
 
@@ -76,20 +76,20 @@ func genMaskSingleNRegsAtomic(mask *fn.Mask, fmts *BlockEntityFormatters) {
 		var code string
 		if (strategy == SeparateFirst && i == 0) || (strategy == SeparateLast && i == len(chunks)-1) {
 			code = fmt.Sprintf(`
-      if apb_req.write = '1' then
-         %[1]s_o(%[2]s downto %[3]s) <= apb_req.wdata(%[4]d downto %[5]d);
+      if req.write = '1' then
+         %[1]s_o(%[2]s downto %[3]s) <= req.wdata(%[4]d downto %[5]d);
          %[1]s_o(%[6]d downto %[7]d) <= %[1]s_atomic(%[6]d downto %[7]d);
       end if;
-      apb_com.rdata(%[4]d downto %[5]d) <= %[1]s_o(%[2]s downto %[3]s);`,
+      com.rdata(%[4]d downto %[5]d) <= %[1]s_o(%[2]s downto %[3]s);`,
 				mask.Name, c.range_[0], c.range_[1], c.endBit, c.startBit,
 				atomicShadowRange[0], atomicShadowRange[1],
 			)
 		} else {
 			code = fmt.Sprintf(`
-      if apb_req.write = '1' then
-         %[1]s_atomic(%[2]s downto %[3]s) <= apb_req.wdata(%[4]d downto %[5]d);
+      if req.write = '1' then
+         %[1]s_atomic(%[2]s downto %[3]s) <= req.wdata(%[4]d downto %[5]d);
       end if;
-      apb_com.rdata(%[4]d downto %[5]d) <= %[1]s_o(%[2]s downto %[3]s);
+      com.rdata(%[4]d downto %[5]d) <= %[1]s_o(%[2]s downto %[3]s);
 `,
 				mask.Name, c.range_[0], c.range_[1], c.endBit, c.startBit,
 			)
@@ -105,10 +105,10 @@ func genMaskSingleNRegsNonAtomic(mask *fn.Mask, fmts *BlockEntityFormatters) {
 
 	for _, c := range chunks {
 		code := fmt.Sprintf(`
-      if apb_req.write = '1' then
-         %[1]s_o(%[2]s downto %[3]s) <= apb_req.wdata(%[4]d downto %[5]d);
+      if req.write = '1' then
+         %[1]s_o(%[2]s downto %[3]s) <= req.wdata(%[4]d downto %[5]d);
       end if;
-      apb_com.rdata(%[4]d downto %[5]d) <= %[1]s_o(%[2]s downto %[3]s);`,
+      com.rdata(%[4]d downto %[5]d) <= %[1]s_o(%[2]s downto %[3]s);`,
 			mask.Name, c.range_[0], c.range_[1], c.endBit, c.startBit,
 		)
 

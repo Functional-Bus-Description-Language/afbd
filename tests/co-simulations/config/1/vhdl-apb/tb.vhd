@@ -30,8 +30,8 @@ begin
   port map (
     clk_i => clk,
     rst_i => '0',
-    apb_reqs_i(0) => req,
-    apb_reqs_o(0) => com,
+    reqs_i(0) => req,
+    reqs_o(0) => com,
     cfg_o => cfg
   );
 

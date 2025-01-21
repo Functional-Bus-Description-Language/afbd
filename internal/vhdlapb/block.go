@@ -133,26 +133,26 @@ func genSubblock(
 	initSubblocksCount := fmts.SubblocksCount
 
 	s := fmt.Sprintf(`;
-  %s_apb_coms_o : out apb.completer_in_array_t(%d downto 0);
-  %[1]s_apb_coms_i : in  apb.completer_out_array_t(%[2]d downto 0)`,
+  %s_coms_o : out apb.completer_in_array_t(%d downto 0);
+  %[1]s_coms_i : in  apb.completer_out_array_t(%[2]d downto 0)`,
 		sb.Name, sb.Count-1,
 	)
 	fmts.EntitySubblockPorts += s
 
 	if sb.Count == 1 {
-		s := fmt.Sprintf("\n  coms_i(%d) => %s_apb_coms_i(0),", initSubblocksCount+1, sb.Name)
+		s := fmt.Sprintf("\n  coms_i(%d) => %s_coms_i(0),", initSubblocksCount+1, sb.Name)
 		fmts.CrossbarSubblockPortsIn += s
 
-		s = fmt.Sprintf(",\n  coms_o(%d) => %s_apb_coms_o(0)", initSubblocksCount+1, sb.Name)
+		s = fmt.Sprintf(",\n  coms_o(%d) => %s_coms_o(0)", initSubblocksCount+1, sb.Name)
 		fmts.CrossbarSubblockPortsOut += s
 	} else {
 		lowerBound := initSubblocksCount + 1
 		upperBound := lowerBound + sb.Count - 1
 
-		s := fmt.Sprintf("\n  coms_i(%d downto %d) => %s_apb_coms_i,", lowerBound, upperBound, sb.Name)
+		s := fmt.Sprintf("\n  coms_i(%d downto %d) => %s_coms_i,", lowerBound, upperBound, sb.Name)
 		fmts.CrossbarSubblockPortsIn += s
 
-		s = fmt.Sprintf(",\n  coms_o(%d downto %d) => %s_apb_coms_o", lowerBound, upperBound, sb.Name)
+		s = fmt.Sprintf(",\n  coms_o(%d downto %d) => %s_coms_o", lowerBound, upperBound, sb.Name)
 		fmts.CrossbarSubblockPortsOut += s
 	}
 
