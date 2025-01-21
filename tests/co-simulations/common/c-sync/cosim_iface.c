@@ -71,13 +71,15 @@ static void cosim_iface_wait(uint32_t time_ns) {
 }
 
 static int cosim_iface_write(const uint8_t addr, const uint32_t data) {
+	const uint8_t byte_addr = addr << 2;
+
 	if (delay_function) {
 		cosim_iface_wait(delay_function());
 	}
 
-	printf("write: addr %#.8x, data %u (%#.8x)\n", addr, data, data);
+	printf("write: addr %#.8x, data %u (%#.8x)\n", byte_addr, data, data);
 	int count;
-	count = fprintf(write_fifo, "W%.8x,%.8x\n", addr, data);
+	count = fprintf(write_fifo, "W%.8x,%.8x\n", byte_addr, data);
 	if (count != 19) {
 		fprintf(stderr, "write: fprintf: not all characters written\n");
 		exit(EXIT_FAILURE);
@@ -122,12 +124,14 @@ static uint32_t bin_to_uint32(const char * const s) {
 }
 
 static int cosim_iface_read(const uint8_t addr, uint32_t * const data) {
+	const uint8_t byte_addr = addr << 2;
+
 	if (delay_function) {
 		cosim_iface_wait(delay_function());
 	}
 
 	int count;
-	count = fprintf(write_fifo, "R%.8x\n", addr);
+	count = fprintf(write_fifo, "R%.8x\n", byte_addr);
 	if (count != 10) {
 		fprintf(stderr, "read: fprintf: not all characters written\n");
 		exit(EXIT_FAILURE);
