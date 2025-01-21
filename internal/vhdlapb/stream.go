@@ -140,7 +140,7 @@ func genStreamStrobe(stream *fn.Stream, fmts *BlockEntityFormatters) {
 
 	stbSet := `
    %s_stb : if addr = %d then
-      if req.write = '%s' then
+      if req.enable = '1' and req.write = '%s' then
          %[1]s_stb_o <= '1';
       end if;
    end if;

@@ -19,7 +19,7 @@ try:
     vals = Main.FIFO.read(N)
 
     for i, v in enumerate(vals):
-        assert i == v[0], f"read {v(0)}, expecting {i}"
+        assert i == v[0], f"read {v[0]}, expecting {i}"
 
     iface.end(0)
 
