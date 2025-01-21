@@ -14,6 +14,7 @@ help:
 	@echo "  lint  Lint files with golangci-lint."
 	@echo "Test targets:"
 	@echo "  test  Run go test."
+	@echo "  tb    Run testbenches."
 	@echo "Other targets:"
 	@echo "  help  Print help message."
 	@echo "  go-update-deps "
@@ -37,6 +38,9 @@ lint:
 # Test targets
 test:
 	go test ./...
+
+tb:
+	hbs test afbd
 
 
 # Installation targets
