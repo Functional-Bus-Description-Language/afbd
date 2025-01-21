@@ -4,7 +4,7 @@ namespace eval afbd::vhdl-apb::static-0 {
 
 	# Custom setupHdl because of -add-timestamp
 	proc _setupHdl {ctx hdl sw} {
-		hbs::SetTool "ghdl"
+		hbs::SetTool "nvc"
 		hbs::SetTop "tb_cosim"
 
 		hbs::AddDep afbd::gen \
