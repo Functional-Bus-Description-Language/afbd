@@ -21,7 +21,7 @@ try:
         count = Main.Count.read()
 
         if count != i + 1:
-            log.error(f"Wrong count, got {count}, expecting {i+1}")
+            raise Exception(f"Wrong count, got {count}, expecting {i+1}")
             iface.end(1)
 
     iface.end(0)

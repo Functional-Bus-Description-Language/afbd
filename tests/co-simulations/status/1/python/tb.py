@@ -1,4 +1,5 @@
 import sys
+import traceback
 import random
 
 import cosim
@@ -33,4 +34,4 @@ try:
 
 except Exception as E:
     iface.end(1)
-    print(E)
+    print(traceback.format_exc())

@@ -10,7 +10,13 @@ namespace eval utils {
 	}
 
 	proc setupHdl {ctx hdl sw} {
-		hbs::SetTool "nvc"
+		hbs::SetTool "ghdl"
+
+                if {$hbs::Tool == "nvc"} {
+			hhbs::AddPostElabCb hbs::SetArgsPrefix "--messages=compact"
+			hbs::AddPostElabCb hbs::SetArgsSuffix "--exit-severity=error --dump-arrays"
+                }
+
 		hbs::SetTop "tb_cosim"
 
 		hbs::AddDep afbd::gen \

@@ -41,18 +41,18 @@ library work;
 
 entity {{.EntityName}} is
 port (
-   clk_i : in std_logic;
-   rst_i : in std_logic;
-   reqs_i : in  apb.requester_out_array_t({{.MastersCount}} - 1 downto 0);
-   reqs_o : out apb.requester_in_array_t ({{.MastersCount}} - 1 downto 0){{.EntitySubblockPorts}}{{.EntityFunctionalPorts}}
+  clk_i : in std_logic;
+  rst_i : in std_logic;
+  reqs_i : in  apb.requester_out_array_t({{.MastersCount}} - 1 downto 0);
+  reqs_o : out apb.requester_in_array_t ({{.MastersCount}} - 1 downto 0){{.EntitySubblockPorts}}{{.EntityFunctionalPorts}}
 );
 end entity;
 
 
 architecture rtl of {{.EntityName}} is
 
-constant C_ADDRS : apb.addr_array_t({{.SubblocksCount}} downto 0) := ({{.AddressValues}});
-constant C_MASKS : apb.mask_array_t({{.SubblocksCount}} downto 0) := ({{.MaskValues}});
+constant C_ADDRS : apb.addr_array_t(0 to {{.SubblocksCount}}) := ({{.AddressValues}});
+constant C_MASKS : apb.mask_array_t(0 to {{.SubblocksCount}}) := ({{.MaskValues}});
 
 signal req : apb.requester_out_t;
 signal com : apb.completer_out_t;
@@ -79,6 +79,7 @@ generic map (
 
 register_access : process (clk_i) is
 
+-- Internal register address, not byte address.
 variable addr : natural range 0 to {{.RegistersCount}} - 1;
 
 begin
@@ -95,7 +96,7 @@ com.slverr <= '0';
 -- Stream Strobes Clear{{.StreamsStrobesClear}}
 
 transfer : if req.selx = '1' then
-   -- Internal register address, not byte address.
+   -- Shift by 2 bits because of byte addressing.
    addr := to_integer(unsigned(req.addr({{.InternalAddrBitsCount}} - 1 + 2 downto 2)));
 
    -- First assume there is some kind of error.

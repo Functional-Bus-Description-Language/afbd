@@ -207,7 +207,7 @@ func genProcCall(proc *fn.Proc, fmts *BlockEntityFormatters) {
 
 	callSet := `
    %s_call : if addr = %d then
-      if req.write = '1' then
+      if req.enable = '1' and req.write = '1' then
          %[1]s_o.call <= '1';
       end if;
    end if;

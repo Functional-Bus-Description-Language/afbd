@@ -61,12 +61,17 @@ type BlockEntityFormatters struct {
 func genBlock(b utils.Block, wg *sync.WaitGroup) {
 	defer wg.Done()
 
+	intAddrBitCount := int64(1)
+	if b.Block.Sizes.Own > 1 {
+		intAddrBitCount = int64(math.Ceil(math.Log2(float64(b.Block.Sizes.Own))))
+	}
+
 	fmts := BlockEntityFormatters{
 		BusWidth:              busWidth,
 		EntityName:            b.Name,
 		MastersCount:          b.Block.Masters,
 		RegistersCount:        b.Block.Sizes.Own,
-		InternalAddrBitsCount: int64(math.Ceil(math.Log2(float64(b.Block.Sizes.Own)))),
+		InternalAddrBitsCount: intAddrBitCount,
 		AddressValues:         fmt.Sprintf("0 => \"%032b\"", 0),
 		RegistersAccess:       make(RegisterMap),
 	}
@@ -77,7 +82,7 @@ func genBlock(b utils.Block, wg *sync.WaitGroup) {
 	if len(b.Block.Subblocks) > 0 {
 		mask = ((1 << addrBitsCount) - 1) ^ ((1 << fmts.InternalAddrBitsCount) - 1)
 	}
-	fmts.MaskValues = fmt.Sprintf("0 => \"%032b\"", mask)
+	fmts.MaskValues = fmt.Sprintf("0 => \"%032b\"", mask<<2)
 
 	genConsts(&b.Block.Consts, &fmts)
 
@@ -160,12 +165,14 @@ func genSubblock(
 	for range sb.Count {
 		fmts.SubblocksCount += 1
 
-		s := fmt.Sprintf(", %d => \"%032b\"", fmts.SubblocksCount, subblockAddr)
-		fmts.AddressValues += s
+		fmts.AddressValues += fmt.Sprintf(
+			", %d => \"%032b\"", fmts.SubblocksCount, subblockAddr<<2,
+		)
 
 		mask := ((1 << superBlockAddrBitsCount) - 1) ^ ((1 << int(math.Log2(float64(sb.Sizes.BlockAligned)))) - 1)
-		s = fmt.Sprintf(", %d => \"%032b\"", fmts.SubblocksCount, mask)
-		fmts.MaskValues += s
+		fmts.MaskValues += fmt.Sprintf(
+			", %d => \"%032b\"", fmts.SubblocksCount, mask<<2,
+		)
 
 		subblockAddr += sb.Sizes.BlockAligned
 	}
