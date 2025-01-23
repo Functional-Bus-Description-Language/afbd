@@ -59,7 +59,7 @@ func genStreamPorts(stream *fn.Stream, fmts *BlockEntityFormatters) {
 		suffix = "i"
 	}
 
-	s := fmt.Sprintf(";\n   %s_%s : %s %[1]s_t;\n", stream.Name, suffix, dir)
+	s := fmt.Sprintf(";\n  %s_%s : %s %[1]s_t;\n", stream.Name, suffix, dir)
 
 	s += fmt.Sprintf("  %s_stb_o : out std_logic", stream.Name)
 

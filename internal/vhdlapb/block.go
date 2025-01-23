@@ -26,7 +26,7 @@ type BlockEntityFormatters struct {
 	MasterCount          int64
 	RegCount             int64
 	InternalAddrBitCount int64
-	SubblocksCount       int64
+	SubblockCount        int64
 
 	// Things going to package.
 	Constants   string
@@ -135,23 +135,26 @@ func genSubblock(
 	superBlockAddrBitsCount int,
 	fmts *BlockEntityFormatters,
 ) {
-	initSubblocksCount := fmts.SubblocksCount
+	initSubblockCount := fmts.SubblockCount
 
-	s := fmt.Sprintf(`;
+	fmts.EntitySubblockPorts += fmt.Sprintf(`;
   %s_coms_o : out apb.completer_in_array_t(%d downto 0);
   %[1]s_coms_i : in  apb.completer_out_array_t(%[2]d downto 0)`,
 		sb.Name, sb.Count-1,
 	)
-	fmts.EntitySubblockPorts += s
 
 	if sb.Count == 1 {
-		s := fmt.Sprintf("\n  coms_i(%d) => %s_coms_i(0),", initSubblocksCount+1, sb.Name)
-		fmts.CrossbarSubblockPortsIn += s
+		fmts.CrossbarSubblockPortsIn += fmt.Sprintf(
+			"\n  coms_i(%d) => %s_coms_i(0),",
+			initSubblockCount+1, sb.Name,
+		)
 
-		s = fmt.Sprintf(",\n  coms_o(%d) => %s_coms_o(0)", initSubblocksCount+1, sb.Name)
-		fmts.CrossbarSubblockPortsOut += s
+		fmts.CrossbarSubblockPortsOut += fmt.Sprintf(
+			",\n  coms_o(%d) => %s_coms_o(0)",
+			initSubblockCount+1, sb.Name,
+		)
 	} else {
-		lowerBound := initSubblocksCount + 1
+		lowerBound := initSubblockCount + 1
 		upperBound := lowerBound + sb.Count - 1
 
 		s := fmt.Sprintf("\n  coms_i(%d downto %d) => %s_coms_i,", lowerBound, upperBound, sb.Name)
@@ -163,15 +166,15 @@ func genSubblock(
 
 	subblockAddr := sb.StartAddr() - superBlockAddrStart
 	for range sb.Count {
-		fmts.SubblocksCount += 1
+		fmts.SubblockCount += 1
 
 		fmts.AddressValues += fmt.Sprintf(
-			", %d => \"%032b\"", fmts.SubblocksCount, subblockAddr<<2,
+			", %d => \"%032b\"", fmts.SubblockCount, subblockAddr<<2,
 		)
 
 		mask := ((1 << superBlockAddrBitsCount) - 1) ^ ((1 << int(math.Log2(float64(sb.Sizes.BlockAligned)))) - 1)
 		fmts.MaskValues += fmt.Sprintf(
-			", %d => \"%032b\"", fmts.SubblocksCount, mask<<2,
+			", %d => \"%032b\"", fmts.SubblockCount, mask<<2,
 		)
 
 		subblockAddr += sb.Sizes.BlockAligned

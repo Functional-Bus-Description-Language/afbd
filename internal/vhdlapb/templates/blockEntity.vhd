@@ -51,8 +51,8 @@ end entity;
 
 architecture rtl of {{.EntityName}} is
 
-constant C_ADDRS : apb.addr_array_t(0 to {{.SubblocksCount}}) := ({{.AddressValues}});
-constant C_MASKS : apb.mask_array_t(0 to {{.SubblocksCount}}) := ({{.MaskValues}});
+constant C_ADDRS : apb.addr_array_t(0 to {{.SubblockCount}}) := ({{.AddressValues}});
+constant C_MASKS : apb.mask_array_t(0 to {{.SubblockCount}}) := ({{.MaskValues}});
 
 signal req : apb.requester_out_t;
 signal com : apb.completer_out_t;
@@ -64,7 +64,7 @@ Shared_Bus: entity lapb.Shared_Bus
 generic map (
   REPORT_PREFIX   => "apb: shared bus: {{.EntityName}}: ",
   REQUESTER_COUNT => {{.MasterCount}},
-  COMPLETER_COUNT => {{.SubblocksCount}} + 1,
+  COMPLETER_COUNT => {{.SubblockCount}} + 1,
   ADDRS => C_ADDRS,
   MASKS => C_MASKS
 ) port map (
