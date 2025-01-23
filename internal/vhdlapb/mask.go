@@ -25,8 +25,10 @@ func genMaskSingle(mask *fn.Mask, fmts *BlockEntityFormatters) {
 		dflt = fmt.Sprintf(" := %s", mask.InitValue.Extend(mask.Width))
 	}
 
-	s := fmt.Sprintf(";\n  %s_o : buffer std_logic_vector(%d downto 0)%s", mask.Name, mask.Width-1, dflt)
-	fmts.EntityFunctionalPorts += s
+	fmts.EntityFunctionalPorts += fmt.Sprintf(
+		";\n  %s_o : buffer std_logic_vector(%d downto 0)%s",
+		mask.Name, mask.Width-1, dflt,
+	)
 
 	switch mask.Access.(type) {
 	case access.SingleOneReg:
