@@ -45,8 +45,10 @@ func genConfigSingle(cfg *fn.Config, fmts *BlockEntityFormatters) {
 		dflt = fmt.Sprintf(" := %s", cfg.InitValue.Extend(cfg.Width))
 	}
 
-	s := fmt.Sprintf(";\n  %s_o : buffer std_logic_vector(%d downto 0)%s", cfg.Name, cfg.Width-1, dflt)
-	fmts.EntityFunctionalPorts += s
+	fmts.EntityFunctionalPorts += fmt.Sprintf(
+		";\n  %s_o : buffer std_logic_vector(%d downto 0)%s",
+		cfg.Name, cfg.Width-1, dflt,
+	)
 
 	switch cfg.Access.(type) {
 	case access.SingleOneReg:

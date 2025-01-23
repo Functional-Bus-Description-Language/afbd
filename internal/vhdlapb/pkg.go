@@ -48,19 +48,19 @@ func genPkgsConsts(pkgsConsts map[string]*pkg.Package) string {
 		// Package type definition
 		s += fmt.Sprintf("type %s_pkg_t is record\n", pkgName)
 		for name := range pkg.Consts.Bools {
-			s += fmt.Sprintf("   %s : boolean;\n", name)
+			s += fmt.Sprintf("  %s : boolean;\n", name)
 		}
 		for name, list := range pkg.Consts.BoolLists {
-			s += fmt.Sprintf("   %s : boolean_vector(0 to %d);\n", name, len(list)-1)
+			s += fmt.Sprintf("  %s : boolean_vector(0 to %d);\n", name, len(list)-1)
 		}
 		for name := range pkg.Consts.Ints {
-			s += fmt.Sprintf("   %s : int64;\n", name)
+			s += fmt.Sprintf("  %s : int64;\n", name)
 		}
 		for name, list := range pkg.Consts.IntLists {
-			s += fmt.Sprintf("   %s : int64_vector(0 to %d);\n", name, len(list)-1)
+			s += fmt.Sprintf("  %s : int64_vector(0 to %d);\n", name, len(list)-1)
 		}
 		for name := range pkg.Consts.Strings {
-			s += fmt.Sprintf("   %s : string;\n", name)
+			s += fmt.Sprintf("  %s : string;\n", name)
 		}
 		s += "end record;\n"
 
@@ -78,10 +78,10 @@ func genPkgsConsts(pkgsConsts map[string]*pkg.Package) string {
 			s += "),\n"
 		}
 		for name, i := range pkg.Consts.Ints {
-			s += fmt.Sprintf("   %s => signed'(x\"%016x\"),\n", name, i)
+			s += fmt.Sprintf("  %s => signed'(x\"%016x\"),\n", name, i)
 		}
 		for name, list := range pkg.Consts.IntLists {
-			s += fmt.Sprintf("   %s => (", name)
+			s += fmt.Sprintf("  %s => (", name)
 			for i, v := range list {
 				s += fmt.Sprintf("%d => signed'(x\"%016x\"), ", i, v)
 			}
@@ -89,7 +89,7 @@ func genPkgsConsts(pkgsConsts map[string]*pkg.Package) string {
 			s += "),\n"
 		}
 		for name, str := range pkg.Consts.Strings {
-			s += fmt.Sprintf("   %s => %q,\n", name, str)
+			s += fmt.Sprintf("  %s => %q,\n", name, str)
 		}
 		s = s[:len(s)-2]
 		s += "\n);\n"
