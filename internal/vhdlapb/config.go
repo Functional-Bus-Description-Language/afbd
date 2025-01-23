@@ -17,7 +17,7 @@ func genConfig(cfg *fn.Config, fmts *BlockEntityFormatters) {
 
 func genConfigArray(cfg *fn.Config, fmts *BlockEntityFormatters) {
 	port := fmt.Sprintf(
-		";\n   %s_o : buffer slv_vector(%d downto 0)(%d downto 0)",
+		";\n  %s_o : buffer slv_vector(%d downto 0)(%d downto 0)",
 		cfg.Name, cfg.Count-1, cfg.Width-1,
 	)
 	if cfg.InitValue != "" {
@@ -45,7 +45,7 @@ func genConfigSingle(cfg *fn.Config, fmts *BlockEntityFormatters) {
 		dflt = fmt.Sprintf(" := %s", cfg.InitValue.Extend(cfg.Width))
 	}
 
-	s := fmt.Sprintf(";\n   %s_o : buffer std_logic_vector(%d downto 0)%s", cfg.Name, cfg.Width-1, dflt)
+	s := fmt.Sprintf(";\n  %s_o : buffer std_logic_vector(%d downto 0)%s", cfg.Name, cfg.Width-1, dflt)
 	fmts.EntityFunctionalPorts += s
 
 	switch cfg.Access.(type) {
@@ -62,10 +62,10 @@ func genConfigSingleOneReg(cfg *fn.Config, fmts *BlockEntityFormatters) {
 	acs := cfg.Access.(access.SingleOneReg)
 
 	code := fmt.Sprintf(`
-      if req.write = '1' then
-         %[1]s_o <= req.wdata(%[2]d downto %[3]d);
-      end if;
-      com.rdata(%[2]d downto %[3]d) <= %[1]s_o;`,
+    if req.write = '1' then
+      %[1]s_o <= req.wdata(%[2]d downto %[3]d);
+    end if;
+    com.rdata(%[2]d downto %[3]d) <= %[1]s_o;`,
 		cfg.Name, acs.EndBit(), acs.StartBit(),
 	)
 
@@ -96,20 +96,20 @@ func genConfigSingleNRegsAtomic(cfg *fn.Config, fmts *BlockEntityFormatters) {
 		var code string
 		if (strategy == SeparateFirst && i == 0) || (strategy == SeparateLast && i == len(chunks)-1) {
 			code = fmt.Sprintf(`
-      if req.write = '1' then
-         %[1]s_o(%[2]s downto %[3]s) <= req.wdata(%[4]d downto %[5]d);
-         %[1]s_o(%[6]d downto %[7]d) <= %[1]s_atomic(%[6]d downto %[7]d);
-      end if;
-      com.rdata(%[4]d downto %[5]d) <= %[1]s_o(%[2]s downto %[3]s);`,
+    if req.write = '1' then
+      %[1]s_o(%[2]s downto %[3]s) <= req.wdata(%[4]d downto %[5]d);
+      %[1]s_o(%[6]d downto %[7]d) <= %[1]s_atomic(%[6]d downto %[7]d);
+    end if;
+    com.rdata(%[4]d downto %[5]d) <= %[1]s_o(%[2]s downto %[3]s);`,
 				cfg.Name, c.range_[0], c.range_[1], c.endBit, c.startBit,
 				atomicShadowRange[0], atomicShadowRange[1],
 			)
 		} else {
 			code = fmt.Sprintf(`
-      if req.write = '1' then
-         %[1]s_atomic(%[2]s downto %[3]s) <= req.wdata(%[4]d downto %[5]d);
-      end if;
-      com.rdata(%[4]d downto %[5]d) <= %[1]s_o(%[2]s downto %[3]s);
+    if req.write = '1' then
+      %[1]s_atomic(%[2]s downto %[3]s) <= req.wdata(%[4]d downto %[5]d);
+    end if;
+    com.rdata(%[4]d downto %[5]d) <= %[1]s_o(%[2]s downto %[3]s);
 `,
 				cfg.Name, c.range_[0], c.range_[1], c.endBit, c.startBit,
 			)
@@ -125,10 +125,10 @@ func genConfigSingleNRegsNonAtomic(cfg *fn.Config, fmts *BlockEntityFormatters) 
 
 	for _, c := range chunks {
 		code := fmt.Sprintf(`
-      if req.write = '1' then
-         %[1]s_o(%[2]s downto %[3]s) <= req.wdata(%[4]d downto %[5]d);
-      end if;
-      com.rdata(%[4]d downto %[5]d) <= %[1]s_o(%[2]s downto %[3]s);`,
+    if req.write = '1' then
+      %[1]s_o(%[2]s downto %[3]s) <= req.wdata(%[4]d downto %[5]d);
+    end if;
+    com.rdata(%[4]d downto %[5]d) <= %[1]s_o(%[2]s downto %[3]s);`,
 			cfg.Name, c.range_[0], c.range_[1], c.endBit, c.startBit,
 		)
 
@@ -140,10 +140,10 @@ func genConfigArrayOneInReg(cfg *fn.Config, fmts *BlockEntityFormatters) {
 	acs := cfg.Access.(access.ArrayOneInReg)
 
 	code := fmt.Sprintf(`
-      if req.write = '1' then
-         %[1]s_o(addr - %[2]d) <= req.wdata(%[3]d downto %[4]d);
-      end if;
-      com.rdata(%[3]d downto %[4]d) <= %[1]s_o(addr - %[2]d);`,
+    if req.write = '1' then
+      %[1]s_o(addr - %[2]d) <= req.wdata(%[3]d downto %[4]d);
+    end if;
+    com.rdata(%[3]d downto %[4]d) <= %[1]s_o(addr - %[2]d);`,
 		cfg.Name, acs.StartAddr(), acs.EndBit(), acs.StartBit(),
 	)
 
@@ -158,12 +158,12 @@ func genConfigArrayOneReg(cfg *fn.Config, fmts *BlockEntityFormatters) {
 
 	addr := [2]int64{acs.StartAddr(), acs.EndAddr()}
 	code := fmt.Sprintf(`
-      for i in 0 to %[1]d loop
-         if req.write = '1' then
-            %[2]s_o(i) <= req.wdata(%[3]d*(i+1)+%[4]d-1 downto %[3]d*i+%[4]d);
-         end if;
-         com.rdata(%[3]d*(i+1)+%[4]d-1 downto %[3]d*i+%[4]d) <= %[2]s_o(i);
-      end loop;`,
+    for i in 0 to %[1]d loop
+      if req.write = '1' then
+        %[2]s_o(i) <= req.wdata(%[3]d*(i+1)+%[4]d-1 downto %[3]d*i+%[4]d);
+      end if;
+      com.rdata(%[3]d*(i+1)+%[4]d-1 downto %[3]d*i+%[4]d) <= %[2]s_o(i);
+    end loop;`,
 		cfg.Count-1, cfg.Name, acs.ItemWidth(), acs.StartBit(),
 	)
 
@@ -175,12 +175,12 @@ func genConfigArrayNInReg(cfg *fn.Config, fmts *BlockEntityFormatters) {
 
 	addr := [2]int64{acs.StartAddr(), acs.EndAddr()}
 	code := fmt.Sprintf(`
-      for i in 0 to %[1]d loop
-         if req.write = '1' then
-            %[4]s_o((addr-%[5]d)*%[6]d+i) <= req.wdata(%[2]d*(i+1)+%[3]d-1 downto %[2]d*i+%[3]d);
-         end if;
-         com.rdata(%[2]d*(i+1)+%[3]d-1 downto %[2]d*i+%[3]d) <= %[4]s_o((addr-%[5]d)*%[6]d+i);
-      end loop;`,
+    for i in 0 to %[1]d loop
+      if req.write = '1' then
+        %[4]s_o((addr-%[5]d)*%[6]d+i) <= req.wdata(%[2]d*(i+1)+%[3]d-1 downto %[2]d*i+%[3]d);
+      end if;
+      com.rdata(%[2]d*(i+1)+%[3]d-1 downto %[2]d*i+%[3]d) <= %[4]s_o((addr-%[5]d)*%[6]d+i);
+    end loop;`,
 		acs.ItemsInReg()-1, acs.ItemWidth(), acs.StartBit(), cfg.Name, acs.StartAddr(), acs.ItemsInReg(),
 	)
 
@@ -192,24 +192,24 @@ func genConfigArrayNInRegMInEndReg(cfg *fn.Config, fmts *BlockEntityFormatters) 
 
 	addr := [2]int64{acs.StartAddr(), acs.EndAddr() - 1}
 	code := fmt.Sprintf(`
-      for i in 0 to %[1]d loop
-         if req.write = '1' then
-            %[4]s_o((addr-%[5]d)*%[6]d+i) <= req.wdata(%[2]d*(i+1) + %[3]d-1 downto %[2]d*i + %[3]d);
-         end if;
-         com.rdata(%[2]d*(i+1) + %[3]d-1 downto %[2]d*i + %[3]d) <= %[4]s_o((addr-%[5]d)*%[6]d+i);
-      end loop;`,
+    for i in 0 to %[1]d loop
+      if req.write = '1' then
+        %[4]s_o((addr-%[5]d)*%[6]d+i) <= req.wdata(%[2]d*(i+1) + %[3]d-1 downto %[2]d*i + %[3]d);
+      end if;
+      com.rdata(%[2]d*(i+1) + %[3]d-1 downto %[2]d*i + %[3]d) <= %[4]s_o((addr-%[5]d)*%[6]d+i);
+    end loop;`,
 		acs.ItemsInReg()-1, acs.ItemWidth(), acs.StartBit(), cfg.Name, acs.StartAddr(), acs.ItemsInReg(),
 	)
 	fmts.RegistersAccess.add(addr, code)
 
 	addr = [2]int64{acs.EndAddr(), acs.EndAddr()}
 	code = fmt.Sprintf(`
-      for i in 0 to %[1]d loop
-         if req.write = '1' then
-            %[4]s_o(%[5]d+i) <= req.wdata(%[2]d*(i+1) + %[3]d-1 downto %[2]d*i+%[3]d);
-         end if;
-         com.rdata(%[2]d*(i+1) + %[3]d-1 downto %[2]d*i+%[3]d) <= %[4]s_o(%[5]d+i);
-      end loop;`,
+    for i in 0 to %[1]d loop
+      if req.write = '1' then
+        %[4]s_o(%[5]d+i) <= req.wdata(%[2]d*(i+1) + %[3]d-1 downto %[2]d*i+%[3]d);
+      end if;
+      com.rdata(%[2]d*(i+1) + %[3]d-1 downto %[2]d*i+%[3]d) <= %[4]s_o(%[5]d+i);
+    end loop;`,
 		acs.ItemsInEndReg()-1, acs.ItemWidth(), acs.StartBit(), cfg.Name, (acs.RegCount()-1)*acs.ItemsInReg(),
 	)
 

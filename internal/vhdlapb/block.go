@@ -23,10 +23,10 @@ type BlockEntityFormatters struct {
 	BusWidth   int64
 	EntityName string
 
-	MastersCount          int64
-	RegistersCount        int64
-	InternalAddrBitsCount int64
-	SubblocksCount        int64
+	MasterCount          int64
+	RegCount             int64
+	InternalAddrBitCount int64
+	SubblocksCount       int64
 
 	// Things going to package.
 	Constants   string
@@ -67,20 +67,20 @@ func genBlock(b utils.Block, wg *sync.WaitGroup) {
 	}
 
 	fmts := BlockEntityFormatters{
-		BusWidth:              busWidth,
-		EntityName:            b.Name,
-		MastersCount:          b.Block.Masters,
-		RegistersCount:        b.Block.Sizes.Own,
-		InternalAddrBitsCount: intAddrBitCount,
-		AddressValues:         fmt.Sprintf("0 => \"%032b\"", 0),
-		RegistersAccess:       make(RegisterMap),
+		BusWidth:             busWidth,
+		EntityName:           b.Name,
+		MasterCount:          b.Block.Masters,
+		RegCount:             b.Block.Sizes.Own,
+		InternalAddrBitCount: intAddrBitCount,
+		AddressValues:        fmt.Sprintf("0 => \"%032b\"", 0),
+		RegistersAccess:      make(RegisterMap),
 	}
 
 	addrBitsCount := int(math.Log2(float64(b.Block.Sizes.BlockAligned)))
 
 	mask := 0
 	if len(b.Block.Subblocks) > 0 {
-		mask = ((1 << addrBitsCount) - 1) ^ ((1 << fmts.InternalAddrBitsCount) - 1)
+		mask = ((1 << addrBitsCount) - 1) ^ ((1 << fmts.InternalAddrBitCount) - 1)
 	}
 	fmts.MaskValues = fmt.Sprintf("0 => \"%032b\"", mask<<2)
 

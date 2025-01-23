@@ -17,7 +17,7 @@ func genStatic(st *fn.Static, fmts *BlockEntityFormatters) {
 
 func genStaticSingle(st *fn.Static, fmts *BlockEntityFormatters) {
 	s := fmt.Sprintf(
-		";\n   %s_o : out std_logic_vector(%d downto 0) := %s",
+		";\n  %s_o : out std_logic_vector(%d downto 0) := %s",
 		st.Name, st.Width-1, string(st.InitValue),
 	)
 	fmts.EntityFunctionalPorts += s
@@ -34,7 +34,7 @@ func genStaticSingleOneReg(st *fn.Static, fmts *BlockEntityFormatters) {
 	acs := st.Access.(access.SingleOneReg)
 
 	code := fmt.Sprintf(
-		"      com.rdata(%d downto %d) <= %s; -- %s\n",
+		"    com.rdata(%d downto %d) <= %s; -- %s\n",
 		acs.EndBit(), acs.StartBit(), string(st.InitValue), st.Name,
 	)
 	addr := acs.StartAddr()

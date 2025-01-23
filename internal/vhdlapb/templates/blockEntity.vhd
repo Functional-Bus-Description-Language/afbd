@@ -43,8 +43,8 @@ entity {{.EntityName}} is
 port (
   clk_i : in std_logic;
   rst_i : in std_logic;
-  reqs_i : in  apb.requester_out_array_t({{.MastersCount}} - 1 downto 0);
-  reqs_o : out apb.requester_in_array_t ({{.MastersCount}} - 1 downto 0){{.EntitySubblockPorts}}{{.EntityFunctionalPorts}}
+  reqs_i : in  apb.requester_out_array_t({{.MasterCount}} - 1 downto 0);
+  reqs_o : out apb.requester_in_array_t ({{.MasterCount}} - 1 downto 0){{.EntitySubblockPorts}}{{.EntityFunctionalPorts}}
 );
 end entity;
 
@@ -63,7 +63,7 @@ begin
 Shared_Bus: entity lapb.Shared_Bus
 generic map (
   REPORT_PREFIX   => "apb: shared bus: {{.EntityName}}: ",
-  REQUESTER_COUNT => {{.MastersCount}},
+  REQUESTER_COUNT => {{.MasterCount}},
   COMPLETER_COUNT => {{.SubblocksCount}} + 1,
   ADDRS => C_ADDRS,
   MASKS => C_MASKS
@@ -80,7 +80,7 @@ generic map (
 register_access : process (clk_i) is
 
 -- Internal register address, not byte address.
-variable addr : natural range 0 to {{.RegistersCount}} - 1;
+variable addr : natural range 0 to {{.RegCount}} - 1;
 
 begin
 
@@ -96,26 +96,26 @@ com.slverr <= '0';
 -- Stream Strobes Clear{{.StreamsStrobesClear}}
 
 transfer : if req.selx = '1' then
-   -- Shift by 2 bits because of byte addressing.
-   addr := to_integer(unsigned(req.addr({{.InternalAddrBitsCount}} - 1 + 2 downto 2)));
+  -- Shift by 2 bits because of byte addressing.
+  addr := to_integer(unsigned(req.addr({{.InternalAddrBitCount}} - 1 + 2 downto 2)));
 
-   -- First assume there is some kind of error.
-   -- For example internal address is invalid or there is a try to write status.
-   com.slverr <= '1';
-   -- '0' for security reasons, '-' can lead to the information leak.
-   com.rdata <= (others => '0');
+  -- First assume there is some kind of error.
+  -- For example internal address is invalid or there is a try to write status.
+  com.slverr <= '1';
+  -- '0' for security reasons, '-' can lead to the information leak.
+  com.rdata <= (others => '0');
 
-   -- Registers Access{{range $addr, $code := .RegistersAccess}}
-   if {{index $addr 0}} <= addr and addr <= {{index $addr 1}} then
+  -- Registers Access{{range $addr, $code := .RegistersAccess}}
+  if {{index $addr 0}} <= addr and addr <= {{index $addr 1}} then
 {{$code}}
 
-      com.slverr <= '0';
-   end if;
+    com.slverr <= '0';
+  end if;
 {{end}}
 
-   -- Proc Calls Set{{.ProcsCallsSet}}
-   -- Proc Exits Set{{.ProcsExitsSet}}
-   -- Stream Strobes Set{{.StreamsStrobesSet}}
+  -- Proc Calls Set{{.ProcsCallsSet}}
+  -- Proc Exits Set{{.ProcsExitsSet}}
+  -- Stream Strobes Set{{.StreamsStrobesSet}}
 
 end if transfer;
 

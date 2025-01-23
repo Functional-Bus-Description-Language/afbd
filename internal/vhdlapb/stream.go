@@ -30,18 +30,18 @@ func genStreamType(stream *fn.Stream, fmts *BlockEntityFormatters) {
 	// Downstream
 	for _, p := range stream.Params {
 		if p.IsArray {
-			s += fmt.Sprintf("   %s : slv_vector(%d downto 0)(%d downto 0);\n", p.Name, p.Count-1, p.Width-1)
+			s += fmt.Sprintf("  %s : slv_vector(%d downto 0)(%d downto 0);\n", p.Name, p.Count-1, p.Width-1)
 		} else {
-			s += fmt.Sprintf("   %s : std_logic_vector(%d downto 0);\n", p.Name, p.Width-1)
+			s += fmt.Sprintf("  %s : std_logic_vector(%d downto 0);\n", p.Name, p.Width-1)
 		}
 	}
 
 	// Upstream
 	for _, r := range stream.Returns {
 		if r.IsArray {
-			s += fmt.Sprintf("   %s : slv_vector(%d downto 0)(%d downto 0);\n", r.Name, r.Count-1, r.Width-1)
+			s += fmt.Sprintf("  %s : slv_vector(%d downto 0)(%d downto 0);\n", r.Name, r.Count-1, r.Width-1)
 		} else {
-			s += fmt.Sprintf("   %s : std_logic_vector(%d downto 0);\n", r.Name, r.Width-1)
+			s += fmt.Sprintf("  %s : std_logic_vector(%d downto 0);\n", r.Name, r.Width-1)
 		}
 	}
 
@@ -61,7 +61,7 @@ func genStreamPorts(stream *fn.Stream, fmts *BlockEntityFormatters) {
 
 	s := fmt.Sprintf(";\n   %s_%s : %s %[1]s_t;\n", stream.Name, suffix, dir)
 
-	s += fmt.Sprintf("   %s_stb_o : out std_logic", stream.Name)
+	s += fmt.Sprintf("  %s_stb_o : out std_logic", stream.Name)
 
 	fmts.EntityFunctionalPorts += s
 }
@@ -72,7 +72,7 @@ func genUpstreamAccess(stream *fn.Stream, fmts *BlockEntityFormatters) {
 		case access.SingleOneReg:
 			addr := [2]int64{acs.StartAddr(), acs.StartAddr()}
 			code := fmt.Sprintf(
-				"      com.rdata(%d downto %d) <= %s_i.%s;\n",
+				"    com.rdata(%d downto %d) <= %s_i.%s;\n",
 				acs.EndBit(), acs.StartBit(), stream.Name, r.Name,
 			)
 
@@ -82,7 +82,7 @@ func genUpstreamAccess(stream *fn.Stream, fmts *BlockEntityFormatters) {
 
 			for _, c := range chunks {
 				code := fmt.Sprintf(
-					"      com.rdata(%[5]d downto %[6]d) <= %[1]s_i.%[2]s(%[3]s downto %[4]s);",
+					"    com.rdata(%[5]d downto %[6]d) <= %[1]s_i.%[2]s(%[3]s downto %[4]s);",
 					stream.Name, r.Name, c.range_[0], c.range_[1], c.endBit, c.startBit,
 				)
 
@@ -100,9 +100,9 @@ func genDownstreamAccess(stream *fn.Stream, fmts *BlockEntityFormatters) {
 		case access.SingleOneReg:
 			addr := [2]int64{acs.StartAddr(), acs.StartAddr()}
 			code := fmt.Sprintf(`
-      if req.write = '1' then
-         %s_o.%s <= req.wdata(%d downto %d);
-      end if;
+    if req.write = '1' then
+      %s_o.%s <= req.wdata(%d downto %d);
+    end if;
 `,
 				stream.Name, p.Name, acs.EndBit(), acs.StartBit(),
 			)
@@ -113,9 +113,9 @@ func genDownstreamAccess(stream *fn.Stream, fmts *BlockEntityFormatters) {
 
 			for _, c := range chunks {
 				code := fmt.Sprintf(`
-      if req.write = '1' then
-         %[1]s_o.%[2]s(%[3]s downto %[4]s) <= req.wdata(%[5]d downto %[6]d);
-      end if;
+    if req.write = '1' then
+      %[1]s_o.%[2]s(%[3]s downto %[4]s) <= req.wdata(%[5]d downto %[6]d);
+    end if;
 `,
 					stream.Name, p.Name, c.range_[0], c.range_[1], c.endBit, c.startBit,
 				)
@@ -139,11 +139,11 @@ func genStreamStrobe(stream *fn.Stream, fmts *BlockEntityFormatters) {
 	}
 
 	stbSet := `
-   %s_stb : if addr = %d then
-      if req.enable = '1' and req.write = '%s' then
-         %[1]s_stb_o <= '1';
-      end if;
-   end if;
+  %s_stb : if addr = %d then
+    if req.enable = '1' and req.write = '%s' then
+      %[1]s_stb_o <= '1';
+    end if;
+  end if;
 `
 	set := fmt.Sprintf(stbSet, stream.Name, stream.StbAddr, weVal)
 

@@ -17,7 +17,7 @@ func genStatus(st *fn.Status, fmts *BlockEntityFormatters) {
 
 func genStatusArray(st *fn.Status, fmts *BlockEntityFormatters) {
 	fmts.EntityFunctionalPorts += fmt.Sprintf(
-		";\n   %s_i : in slv_vector(%d downto 0)(%d downto 0)",
+		";\n  %s_i : in slv_vector(%d downto 0)(%d downto 0)",
 		st.Name, st.Count-1, st.Width-1,
 	)
 
@@ -39,7 +39,7 @@ func genStatusArray(st *fn.Status, fmts *BlockEntityFormatters) {
 
 func genStatusSingle(st *fn.Status, fmts *BlockEntityFormatters) {
 	fmts.EntityFunctionalPorts += fmt.Sprintf(
-		";\n   %s_i : in std_logic_vector(%d downto 0)",
+		";\n  %s_i : in std_logic_vector(%d downto 0)",
 		st.Name, st.Width-1,
 	)
 
@@ -57,7 +57,7 @@ func genStatusSingleOneReg(st *fn.Status, fmts *BlockEntityFormatters) {
 	acs := st.Access.(access.SingleOneReg)
 
 	code := fmt.Sprintf(
-		"      com.rdata(%d downto %d) <= %s_i;\n",
+		"    com.rdata(%d downto %d) <= %s_i;\n",
 		acs.EndBit(), acs.StartBit(), st.Name,
 	)
 	addr := acs.StartAddr()
@@ -87,14 +87,14 @@ func genStatusSingleNRegsAtomic(st *fn.Status, fmts *BlockEntityFormatters) {
 		var code string
 		if (strategy == SeparateFirst && i == 0) || (strategy == SeparateLast && i == len(chunks)-1) {
 			code = fmt.Sprintf(`
-      %[1]s_atomic(%[2]d downto %[3]d) <= %[1]s_i(%[2]d downto %[3]d);
-      com.rdata(%[4]d downto %[5]d) <= %[1]s_i(%[6]s downto %[7]s);`,
+    %[1]s_atomic(%[2]d downto %[3]d) <= %[1]s_i(%[2]d downto %[3]d);
+    com.rdata(%[4]d downto %[5]d) <= %[1]s_i(%[6]s downto %[7]s);`,
 				st.Name, atomicShadowRange[0], atomicShadowRange[1],
 				c.endBit, c.startBit, c.range_[0], c.range_[1],
 			)
 		} else {
 			code = fmt.Sprintf(
-				"      com.rdata(%d downto %d) <= %s_atomic(%s downto %s);",
+				"    com.rdata(%d downto %d) <= %s_atomic(%s downto %s);",
 				c.endBit, c.startBit, st.Name, c.range_[0], c.range_[1],
 			)
 		}
@@ -108,7 +108,7 @@ func genStatusSingleNRegsNonAtomic(st *fn.Status, fmts *BlockEntityFormatters) {
 
 	for _, c := range chunks {
 		code := fmt.Sprintf(
-			"      com.rdata(%d downto %d) <= %s_i(%s downto %s);",
+			"    com.rdata(%d downto %d) <= %s_i(%s downto %s);",
 			c.endBit, c.startBit, st.Name, c.range_[0], c.range_[1],
 		)
 
@@ -120,7 +120,7 @@ func genStatusArrayOneInReg(st *fn.Status, fmts *BlockEntityFormatters) {
 	acs := st.Access.(access.ArrayOneInReg)
 
 	code := fmt.Sprintf(
-		"      com.rdata(%d downto %d) <= %s_i(addr - %d);",
+		"    com.rdata(%d downto %d) <= %s_i(addr - %d);",
 		acs.EndBit(), acs.StartBit(), st.Name, acs.StartAddr(),
 	)
 
@@ -135,9 +135,9 @@ func genStatusArrayOneReg(st *fn.Status, fmts *BlockEntityFormatters) {
 
 	addr := [2]int64{acs.StartAddr(), acs.EndAddr()}
 	code := fmt.Sprintf(`
-      for i in 0 to %[1]d loop
-         com.rdata(%[2]d*(i+1)+%[3]d-1 downto %[2]d*i+%[3]d) <= %[4]s_i(i);
-      end loop;`,
+    for i in 0 to %[1]d loop
+      com.rdata(%[2]d*(i+1)+%[3]d-1 downto %[2]d*i+%[3]d) <= %[4]s_i(i);
+    end loop;`,
 		st.Count-1, acs.ItemWidth(), acs.StartBit(), st.Name,
 	)
 
@@ -149,9 +149,9 @@ func genStatusArrayNInReg(st *fn.Status, fmts *BlockEntityFormatters) {
 
 	addr := [2]int64{acs.StartAddr(), acs.EndAddr()}
 	code := fmt.Sprintf(`
-      for i in 0 to %[1]d loop
-         com.rdata(%[2]d*(i+1)+%[3]d-1 downto %[2]d*i+%[3]d) <= %[4]s_i((addr-%[5]d)*%[6]d+i);
-      end loop;`,
+    for i in 0 to %[1]d loop
+      com.rdata(%[2]d*(i+1)+%[3]d-1 downto %[2]d*i+%[3]d) <= %[4]s_i((addr-%[5]d)*%[6]d+i);
+    end loop;`,
 		acs.ItemsInReg()-1, acs.ItemWidth(), acs.StartBit(), st.Name, acs.StartAddr(), acs.ItemsInReg(),
 	)
 
@@ -163,18 +163,18 @@ func genStatusArrayNInRegMInEndReg(st *fn.Status, fmts *BlockEntityFormatters) {
 
 	addr := [2]int64{acs.StartAddr(), acs.EndAddr() - 1}
 	code := fmt.Sprintf(`
-      for i in 0 to %[1]d loop
-         com.rdata(%[2]d*(i+1) + %[3]d-1 downto %[2]d*i + %[3]d) <= %[4]s_i((addr-%[5]d)*%[6]d+i);
-      end loop;`,
+    for i in 0 to %[1]d loop
+      com.rdata(%[2]d*(i+1) + %[3]d-1 downto %[2]d*i + %[3]d) <= %[4]s_i((addr-%[5]d)*%[6]d+i);
+    end loop;`,
 		acs.ItemsInReg()-1, acs.ItemWidth(), acs.StartBit(), st.Name, acs.StartAddr(), acs.ItemsInReg(),
 	)
 	fmts.RegistersAccess.add(addr, code)
 
 	addr = [2]int64{acs.EndAddr(), acs.EndAddr()}
 	code = fmt.Sprintf(`
-      for i in 0 to %[1]d loop
-         com.rdata(%[2]d*(i+1) + %[3]d-1 downto %[2]d*i+%[3]d) <= %[4]s_i(%[5]d+i);
-      end loop;`,
+    for i in 0 to %[1]d loop
+      com.rdata(%[2]d*(i+1) + %[3]d-1 downto %[2]d*i+%[3]d) <= %[4]s_i(%[5]d+i);
+    end loop;`,
 		acs.ItemsInEndReg()-1, acs.ItemWidth(), acs.StartBit(), st.Name, (acs.RegCount()-1)*acs.ItemsInReg(),
 	)
 
@@ -200,11 +200,11 @@ func genStatusArrayOneInNRegsNonAtomic(st *fn.Status, fmts *BlockEntityFormatter
 	lowerBound := fmt.Sprintf("(%s) * %d", bite, busWidth)
 	upperBound := fmt.Sprintf("(%s) + %d", bite, busWidth-1)
 	code := fmt.Sprintf(`
-      if %[1]s = %[2]d then
-          com.rdata(%[3]d downto 0) <= %[4]s_i(%[5]s)(%[6]d downto %[7]s);
-      else
-          com.rdata <= %[4]s_i(%[5]s)(%[8]s downto %[7]s);
-      end if;`,
+    if %[1]s = %[2]d then
+       com.rdata(%[3]d downto 0) <= %[4]s_i(%[5]s)(%[6]d downto %[7]s);
+    else
+       com.rdata <= %[4]s_i(%[5]s)(%[8]s downto %[7]s);
+    end if;`,
 		bite, acs.RegsPerItem()-1, acs.EndBit(), st.Name, idx, st.Width-1, lowerBound, upperBound,
 	)
 

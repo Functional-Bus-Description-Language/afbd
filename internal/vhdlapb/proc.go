@@ -25,16 +25,16 @@ func genProcOutType(proc *fn.Proc, fmts *BlockEntityFormatters) {
 
 	for _, p := range proc.Params {
 		if p.IsArray {
-			s += fmt.Sprintf("   %s : slv_vector(%d downto 0)(%d downto 0);\n", p.Name, p.Count-1, p.Width-1)
+			s += fmt.Sprintf("  %s : slv_vector(%d downto 0)(%d downto 0);\n", p.Name, p.Count-1, p.Width-1)
 		} else {
-			s += fmt.Sprintf("   %s : std_logic_vector(%d downto 0);\n", p.Name, p.Width-1)
+			s += fmt.Sprintf("  %s : std_logic_vector(%d downto 0);\n", p.Name, p.Width-1)
 		}
 	}
 
-	s += "   call : std_logic;\n"
+	s += "  call : std_logic;\n"
 
 	if len(proc.Returns) != 0 {
-		s += "   exitt : std_logic;\n"
+		s += "  exitt : std_logic;\n"
 	}
 	s += "end record;\n"
 
@@ -50,9 +50,9 @@ func genProcInType(proc *fn.Proc, fmts *BlockEntityFormatters) {
 
 	for _, r := range proc.Returns {
 		if r.IsArray {
-			s += fmt.Sprintf("   %s : slv_vector(%d downto 0)(%d downto 0);\n", r.Name, r.Count-1, r.Width-1)
+			s += fmt.Sprintf("  %s : slv_vector(%d downto 0)(%d downto 0);\n", r.Name, r.Count-1, r.Width-1)
 		} else {
-			s += fmt.Sprintf("   %s : std_logic_vector(%d downto 0);\n", r.Name, r.Width-1)
+			s += fmt.Sprintf("  %s : std_logic_vector(%d downto 0);\n", r.Name, r.Width-1)
 		}
 	}
 
@@ -62,9 +62,9 @@ func genProcInType(proc *fn.Proc, fmts *BlockEntityFormatters) {
 }
 
 func genProcPorts(proc *fn.Proc, fmts *BlockEntityFormatters) {
-	s := fmt.Sprintf(";\n   %s_o : out %[1]s_out_t", proc.Name)
+	s := fmt.Sprintf(";\n  %s_o : out %[1]s_out_t", proc.Name)
 	if len(proc.Returns) != 0 {
-		s += fmt.Sprintf(";\n   %s_i : in %[1]s_in_t", proc.Name)
+		s += fmt.Sprintf(";\n  %s_i : in %[1]s_in_t", proc.Name)
 	}
 	fmts.EntityFunctionalPorts += s
 }
@@ -99,10 +99,10 @@ func genProcParamAccessSingleOneReg(proc *fn.Proc, fmts *BlockEntityFormatters, 
 	acs := param.Access.(access.SingleOneReg)
 
 	code := fmt.Sprintf(`
-      if req.write = '1' then
-         %[1]s_o.%[2]s <= req.wdata(%[3]d downto %[4]d);
-      end if;
-      com.rdata(%[3]d downto %[4]d) <= %[1]s_o.%[2]s;`,
+    if req.write = '1' then
+      %[1]s_o.%[2]s <= req.wdata(%[3]d downto %[4]d);
+    end if;
+    com.rdata(%[3]d downto %[4]d) <= %[1]s_o.%[2]s;`,
 		proc.Name, param.Name, acs.EndBit(), acs.StartBit(),
 	)
 	addr := acs.StartAddr()
@@ -115,10 +115,10 @@ func genProcParamAccessSingleNRegs(proc *fn.Proc, fmts *BlockEntityFormatters, p
 	chunks := makeAccessChunksContinuous(acs, Compact)
 	for _, c := range chunks {
 		code := fmt.Sprintf(`
-      if req.write = '1' then
-         %[1]s_o.%[2]s(%[3]s downto %[4]s) <= req.wdata(%[5]d downto %[6]d);
-      end if;
-      com.rdata(%[5]d downto %[6]d) <= %[1]s_o.%[2]s(%[3]s downto %[4]s);`,
+    if req.write = '1' then
+      %[1]s_o.%[2]s(%[3]s downto %[4]s) <= req.wdata(%[5]d downto %[6]d);
+    end if;
+    com.rdata(%[5]d downto %[6]d) <= %[1]s_o.%[2]s(%[3]s downto %[4]s);`,
 			proc.Name, param.Name, c.range_[0], c.range_[1], c.endBit, c.startBit,
 		)
 		fmts.RegistersAccess.add([2]int64{c.addr[0], c.addr[1]}, code)
@@ -134,9 +134,9 @@ func genProcParamAccessArrayNRegs(proc *fn.Proc, fmts *BlockEntityFormatters, pa
 	)
 
 	code := fmt.Sprintf(`
-      if req.write = '1' then
-         %s_%s(addr - %d) <= req.wdata;
-      end if;`,
+    if req.write = '1' then
+      %s_%s(addr - %d) <= req.wdata;
+    end if;`,
 		proc.Name, param.Name, acs.StartAddr(),
 	)
 	fmts.RegistersAccess.add([2]int64{acs.StartAddr(), acs.EndAddr()}, code)
@@ -144,33 +144,33 @@ func genProcParamAccessArrayNRegs(proc *fn.Proc, fmts *BlockEntityFormatters, pa
 	code = fmt.Sprintf(
 		`
 %s_%s_driver : process(%[1]s_%[2]s) is
-   variable start_bit : natural;
-   variable width : natural;
-   variable chunk_width : natural;
-   variable item_idx : natural;
+  variable start_bit : natural;
+  variable width : natural;
+  variable chunk_width : natural;
+  variable item_idx : natural;
 begin
-   start_bit := %[6]d;
-   width := 0;
-   item_idx := 0;
-   for addr in 0 to %[7]d loop
-      loop
-         chunk_width := %[4]d - width when %[4]d - width < %[3]d - start_bit else %[3]d - start_bit;
-         %[1]s_o.%[2]s(item_idx)(chunk_width + width - 1 downto width) <= %[1]s_%[2]s(addr)(chunk_width + start_bit - 1 downto start_bit);
+  start_bit := %[6]d;
+  width := 0;
+  item_idx := 0;
+  for addr in 0 to %[7]d loop
+    loop
+      chunk_width := %[4]d - width when %[4]d - width < %[3]d - start_bit else %[3]d - start_bit;
+      %[1]s_o.%[2]s(item_idx)(chunk_width + width - 1 downto width) <= %[1]s_%[2]s(addr)(chunk_width + start_bit - 1 downto start_bit);
 
-         width := width + chunk_width;
-         if width = %[4]d then
-            item_idx := item_idx + 1;
-            exit when item_idx = %[5]d;
-            width := 0;
-         end if;
+      width := width + chunk_width;
+      if width = %[4]d then
+        item_idx := item_idx + 1;
+        exit when item_idx = %[5]d;
+        width := 0;
+      end if;
 
-         start_bit := start_bit + chunk_width;
-         if start_bit = %[3]d then
-            start_bit := 0;
-            exit;
-         end if;
-      end loop;
-   end loop;
+      start_bit := start_bit + chunk_width;
+      if start_bit = %[3]d then
+        start_bit := 0;
+        exit;
+      end if;
+    end loop;
+  end loop;
 end process;
 `,
 		proc.Name, param.Name, busWidth, acs.ItemWidth(), acs.ItemCount(), acs.StartBit(), acs.RegCount()-1,
@@ -184,7 +184,7 @@ func genProcReturnsAccess(proc *fn.Proc, fmts *BlockEntityFormatters) {
 		case access.SingleOneReg:
 			addr := [2]int64{acs.StartAddr(), acs.StartAddr()}
 			code := fmt.Sprintf(
-				"      com.rdata(%[1]d downto %[2]d) <= %[3]s_i.%[4]s;\n",
+				"    com.rdata(%[1]d downto %[2]d) <= %[3]s_i.%[4]s;\n",
 				acs.EndBit(), acs.StartBit(), proc.Name, r.Name,
 			)
 
@@ -206,11 +206,11 @@ func genProcCall(proc *fn.Proc, fmts *BlockEntityFormatters) {
 	fmts.ProcsCallsClear += clear
 
 	callSet := `
-   %s_call : if addr = %d then
-      if req.enable = '1' and req.write = '1' then
-         %[1]s_o.call <= '1';
-      end if;
-   end if;
+  %s_call : if addr = %d then
+    if req.enable = '1' and req.write = '1' then
+      %[1]s_o.call <= '1';
+    end if;
+  end if;
 `
 	set := fmt.Sprintf(callSet, proc.Name, *proc.CallAddr)
 
@@ -227,11 +227,11 @@ func genProcExit(proc *fn.Proc, fmts *BlockEntityFormatters) {
 	fmts.ProcsExitsClear += clear
 
 	exitSet := `
-   %s_exit : if addr = %d then
-      if req.write = '0' then
-         %[1]s_o.exitt <= '1';
-      end if;
-   end if;
+  %s_exit : if addr = %d then
+    if req.write = '0' then
+      %[1]s_o.exitt <= '1';
+    end if;
+  end if;
 `
 	set := fmt.Sprintf(exitSet, proc.Name, *proc.ExitAddr)
 
