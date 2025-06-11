@@ -39,12 +39,12 @@ begin
   port map (
     clk_i => clk,
     rst_i => '0',
-    reqs_i(0) => req,
-    reqs_o(0) => com,
-    blk0_coms_o(0) => blk0_req,
-    blk0_coms_i(0) => blk0_com,
-    blk1_coms_o(0) => blk1_req,
-    blk1_coms_i(0) => blk1_com
+    coms_i(0) => req,
+    coms_o(0) => com,
+    blk0_reqs_o(0) => blk0_req,
+    blk0_reqs_i(0) => blk0_com,
+    blk1_reqs_o(0) => blk1_req,
+    blk1_reqs_i(0) => blk1_com
   );
 
 
@@ -52,8 +52,8 @@ begin
   port map (
     clk_i => clk,
     rst_i => '0',
-    reqs_i(0) => blk0_req,
-    reqs_o(0) => blk0_com,
+    coms_i(0) => blk0_req,
+    coms_o(0) => blk0_com,
     cfg_o => cfg0,
     st_i => cfg0
   );
@@ -63,10 +63,10 @@ begin
   port map (
     clk_i => clk,
     rst_i => '0',
-    reqs_i(0) => blk1_req,
-    reqs_o(0) => blk1_com,
-    blk2_coms_o(0) => blk2_req,
-    blk2_coms_i(0) => blk2_com,
+    coms_i(0) => blk1_req,
+    coms_o(0) => blk1_com,
+    blk2_reqs_o(0) => blk2_req,
+    blk2_reqs_i(0) => blk2_com,
     cfg_o => cfg1,
     st_i => cfg1
   );
@@ -76,8 +76,8 @@ begin
   port map (
     clk_i => clk,
     rst_i => '0',
-    reqs_i(0) => blk2_req,
-    reqs_o(0) => blk2_com,
+    coms_i(0) => blk2_req,
+    coms_o(0) => blk2_com,
     cfg_o => cfg2,
     st_i => cfg2
   );

@@ -43,8 +43,8 @@ entity {{.EntityName}} is
 port (
   clk_i : in std_logic;
   rst_i : in std_logic;
-  reqs_i : in  apb.requester_out_array_t({{.MasterCount}} - 1 downto 0);
-  reqs_o : out apb.requester_in_array_t ({{.MasterCount}} - 1 downto 0){{.EntitySubblockPorts}}{{.EntityFunctionalPorts}}
+  coms_i : in  apb.completer_in_array_t ({{.MasterCount}} - 1 downto 0);
+  coms_o : out apb.completer_out_array_t({{.MasterCount}} - 1 downto 0){{.EntitySubblockPorts}}{{.EntityFunctionalPorts}}
 );
 end entity;
 
@@ -70,10 +70,10 @@ generic map (
 ) port map (
   arstn_i => not rst_i,
   clk_i   => clk_i,
-  reqs_i  => reqs_i,
-  reqs_o  => reqs_o,
-  coms_i(0) => com,{{.CrossbarSubblockPortsIn}}
-  coms_o(0) => req{{.CrossbarSubblockPortsOut}}
+  coms_i  => coms_i,
+  coms_o  => coms_o,
+  reqs_i(0) => com,{{.CrossbarSubblockPortsIn}}
+  reqs_o(0) => req{{.CrossbarSubblockPortsOut}}
 );
 
 

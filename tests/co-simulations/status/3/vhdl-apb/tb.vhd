@@ -55,8 +55,8 @@ begin
   port map (
     clk_i => clk,
     rst_i => '0',
-    reqs_i(0) => req,
-    reqs_o(0) => com,
+    coms_i(0) => req,
+    coms_o(0) => com,
     status_array0_i => status_array0,
     status_array1_i => status_array1,
     status_array2_i => status_array2
