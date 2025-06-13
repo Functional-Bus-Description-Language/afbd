@@ -63,9 +63,13 @@ func genBlockH(b utils.Block, hFmts BlockHFormatters) {
 	if err != nil {
 		log.Fatalf("generate C-Sync: %v", err)
 	}
-	defer f.Close()
 
 	err = blockHeaderTmpl.Execute(f, hFmts)
+	if err != nil {
+		log.Fatalf("generate C-Sync: %v", err)
+	}
+
+	err = f.Close()
 	if err != nil {
 		log.Fatalf("generate C-Sync: %v", err)
 	}
@@ -76,9 +80,13 @@ func genBlockC(b utils.Block, cFmts BlockCFormatters) {
 	if err != nil {
 		log.Fatalf("generate C-Sync: %v", err)
 	}
-	defer f.Close()
 
 	err = blockSourceTmpl.Execute(f, cFmts)
+	if err != nil {
+		log.Fatalf("generate C-Sync: %v", err)
+	}
+
+	err = f.Close()
 	if err != nil {
 		log.Fatalf("generate C-Sync: %v", err)
 	}

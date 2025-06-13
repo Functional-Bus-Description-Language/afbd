@@ -39,7 +39,6 @@ func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package, cmdLineArgs map
 	if err != nil {
 		log.Fatalf("generate Python: %v", err)
 	}
-	defer f.Close()
 
 	fmts := pythonFormatters{
 		BusWidth: busWidth,
@@ -50,12 +49,17 @@ func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package, cmdLineArgs map
 	if err != nil {
 		log.Fatalf("generate Python: %v", err)
 	}
+
+	err = f.Close()
+	if err != nil {
+		log.Fatalf("generate Python: %v", err)
+	}
 }
 
 var indent string
 
 func increaseIndent(val int) {
-	// NOTE: Inefficient implementaion.
+	// NOTE: Inefficient implementation.
 	for range val {
 		indent += "    "
 	}

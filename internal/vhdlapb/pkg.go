@@ -25,7 +25,6 @@ func genAPBPackage(pkgsConsts map[string]*pkg.Package) {
 	if err != nil {
 		log.Fatalf("generate vhdl-apb: %v", err)
 	}
-	defer f.Close()
 
 	fmts := apbPackageFormatters{PkgsConsts: genPkgsConsts(pkgsConsts)}
 
@@ -35,6 +34,11 @@ func genAPBPackage(pkgsConsts map[string]*pkg.Package) {
 	}
 
 	addGeneratedFile(filePath)
+
+	err = f.Close()
+	if err != nil {
+		log.Fatalf("generate vhdl-apb: %v", err)
+	}
 }
 
 func genPkgsConsts(pkgsConsts map[string]*pkg.Package) string {

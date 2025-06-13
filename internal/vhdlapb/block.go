@@ -119,7 +119,6 @@ func genBlock(b utils.Block, wg *sync.WaitGroup) {
 	if err != nil {
 		log.Fatalf("generate vhdl-apb: %v", err)
 	}
-	defer f.Close()
 
 	err = blockEntityTmpl.Execute(f, fmts)
 	if err != nil {
@@ -127,6 +126,11 @@ func genBlock(b utils.Block, wg *sync.WaitGroup) {
 	}
 
 	addGeneratedFile(filePath)
+
+	err = f.Close()
+	if err != nil {
+		log.Fatalf("generate vhdl-apb: %v", err)
+	}
 }
 
 func genSubblock(

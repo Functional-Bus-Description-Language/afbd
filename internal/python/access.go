@@ -9,11 +9,10 @@ import (
 )
 
 func genAccess(acs access.Access, blkAddr int64, b *strings.Builder) {
-	b.WriteString(
-		fmt.Sprintf(
-			"{'StartAddr': %d, 'StartBit': %d, 'EndBit': %d, 'RegCount': %d, 'Type': ",
-			blkAddr+acs.StartAddr(), acs.StartBit(), acs.EndBit(), acs.RegCount(),
-		),
+	fmt.Fprintf(
+		b,
+		"{'StartAddr': %d, 'StartBit': %d, 'EndBit': %d, 'RegCount': %d, 'Type': ",
+		blkAddr+acs.StartAddr(), acs.StartBit(), acs.EndBit(), acs.RegCount(),
 	)
 
 	switch a := acs.(type) {
@@ -22,7 +21,7 @@ func genAccess(acs access.Access, blkAddr int64, b *strings.Builder) {
 	case access.SingleNRegs:
 		b.WriteString("'SingleNRegs'")
 	case access.ArrayNRegs:
-		b.WriteString(fmt.Sprintf("'ArrayNRegs', 'ItemCount': %d", a.ItemCount()))
+		fmt.Fprintf(b, "'ArrayNRegs', 'ItemCount': %d", a.ItemCount())
 	case access.ArrayOneInReg:
 		panic("unimplemented")
 	case access.ArrayNInReg:

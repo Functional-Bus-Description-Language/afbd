@@ -1,7 +1,7 @@
+version: "2"
 linters:
   enable:
-    - exhaustive
     - intrange
-run:
-  skip-files:
-    - internal/ins/grp_order.go
+    - misspell
+    - nilerr
+    - unconvert

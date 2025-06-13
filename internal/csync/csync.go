@@ -44,7 +44,6 @@ func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package, cmdLineArgs map
 	if err != nil {
 		log.Fatalf("generate C-Sync: %v", err)
 	}
-	defer hFile.Close()
 
 	addrType = c.SizeToAddrType(bus.Sizes.BlockAligned)
 	readType = c.WidthToReadType(bus.Width)
@@ -70,5 +69,10 @@ func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package, cmdLineArgs map
 	for _, b := range blocks {
 		wg.Add(1)
 		go genBlock(b, &wg)
+	}
+
+	err = hFile.Close()
+	if err != nil {
+		log.Fatalf("generate C-Sync: %v", err)
 	}
 }
