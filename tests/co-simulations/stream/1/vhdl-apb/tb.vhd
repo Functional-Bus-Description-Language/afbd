@@ -41,8 +41,9 @@ begin
   port map (
     clk_i => clk,
     rst_i => '0',
-    coms_i(0) => req,
-    coms_o(0) => com,
+
+    apb_coms_i(0) => req,
+    apb_coms_o(0) => com,
 
     add_o     => add,
     add_stb_o => add_stb,

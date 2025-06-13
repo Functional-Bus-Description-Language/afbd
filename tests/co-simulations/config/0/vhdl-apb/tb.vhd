@@ -24,15 +24,19 @@ begin
 
   clk <= not clk after 0.5 ns;
 
+
   cosim_interface(G_SW_GW_FIFO_PATH, G_GW_SW_FIFO_PATH, clk, req, com);
+
 
   afbd_main : entity afbd.Main
   port map (
     clk_i => clk,
     rst_i => '0',
-    coms_i(0) => req,
-    coms_o(0) => com,
-    st_i => cfg,
+
+    apb_coms_i(0) => req,
+    apb_coms_o(0) => com,
+
+    st_i  => cfg,
     cfg_o => cfg
   );
 
