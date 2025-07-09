@@ -40,7 +40,7 @@ func main() {
 	cmdLineArgs := args.Parse()
 	args.SetOutputPaths(cmdLineArgs)
 
-	if _, ok := cmdLineArgs["global"]["--debug"]; ok {
+	if _, ok := cmdLineArgs["global"]["-debug"]; ok {
 		printDebug = true
 	}
 
