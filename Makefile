@@ -6,9 +6,10 @@ default: build
 
 help:
 	@echo "Build targets:"
-	@echo "  all      Run fmt vet build."
-	@echo "  build    Build binary."
-	@echo "  default  Run build."
+	@echo "  all       Run fmt vet build."
+	@echo "  build     Build binary."
+	@echo "  cc-linux  Cross compile for Linux."
+	@echo "  default   Run build."
 	@echo "Quality targets:"
 	@echo "  fmt   Format files with go fmt."
 	@echo "  lint  Lint files with golangci-lint."
@@ -26,6 +27,8 @@ all: lint fmt build
 build:
 	go build -v -o $(NAME) ./cmd/$(NAME)
 
+cc-linux:
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -v -o $(NAME) ./cmd/$(NAME)
 
 # Quality targets
 fmt:
