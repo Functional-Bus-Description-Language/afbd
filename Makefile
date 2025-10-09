@@ -48,10 +48,10 @@ tb:
 
 # Installation targets
 install:
-	cp $(NAME) /usr/bin
+	cp $(NAME) /usr/local/bin
 
 uninstall:
-	rm /usr/bin/$(NAME)
+	rm /usr/local/bin/$(NAME)
 
 # Other targets:
 go-update-deps:
