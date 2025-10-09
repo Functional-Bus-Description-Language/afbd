@@ -10,12 +10,19 @@ import (
 
 const Version string = "0.0.0"
 
+// Parser state variables
+var (
+	target    string // Target currently being parsed
+	param     string // Parameter currently being parsed
+	expectArg bool   // True if next argument must be parameter value
+)
+
 func printVersion() {
 	fmt.Println(Version)
 	os.Exit(0)
 }
 
-func Parse() map[string]map[string]string {
+func Parse() {
 	if len(os.Args) == 1 {
 		printHelp()
 	}
@@ -36,12 +43,6 @@ func Parse() map[string]map[string]string {
 		}
 	}
 
-	args := map[string]map[string]string{"global": map[string]string{}}
-	currentTarget := ""
-	currentParam := ""
-	expectArg := false
-	inGlobalArgs := true
-
 	for i, arg := range os.Args[1:] {
 		if i == len(os.Args)-2 {
 			if !strings.HasPrefix(arg, "-") {
@@ -49,84 +50,125 @@ func Parse() map[string]map[string]string {
 			}
 		}
 
-		if inGlobalArgs {
+		// Parse global flags and arguments
+		if target == "" {
 			if arg == "-help" {
 				printHelp()
 			} else if arg == "-version" {
 				printVersion()
 			} else if expectArg {
-				args["global"][currentParam] = arg
+				switch param {
+				case "-main":
+					MainBus = arg
+				case "-path":
+					Path = arg
+				}
 				expectArg = false
-			} else if arg == "-add-timestamp" || arg == "-times" {
-				args["global"][arg] = ""
+			} else if arg == "-add-timestamp" {
+				AddTimestamp = true
+			} else if arg == "-times" {
+				Times = true
 			} else if arg == "-debug" {
-				args["global"]["-debug"] = ""
+				Debug = true
 			} else if arg == "-main" || arg == "-path" {
-				currentParam = arg
+				param = arg
 				expectArg = true
 			} else if !strings.HasPrefix(arg, "-") {
-				inGlobalArgs = false
 				if !isValidTarget(arg) {
 					log.Fatalf("'%s' is not valid target", arg)
 				}
-				currentTarget = arg
-				args[arg] = map[string]string{}
+				setTarget(arg)
 			}
 
 			continue
 		}
 
 		if expectArg {
-			args[currentTarget][currentParam] = arg
+			setParam(arg)
 			expectArg = false
 		} else if isValidTarget(arg) {
-			currentTarget = arg
-			args[arg] = map[string]string{}
-		} else if !isValidParam(arg, currentTarget) && !isValidFlag(arg, currentTarget) && !expectArg {
+			setTarget(arg)
+		} else if !isValidParam(arg, target) && !isValidFlag(arg, target) && !expectArg {
 			log.Fatalf(
 				"'%s' is not valid flag or parameter for '%s' target, "+
 					"run 'afbd %[2]s -help' to see valid flags and parameters",
-				arg, currentTarget,
+				arg, target,
 			)
 		} else if arg == "-help" {
-			printTargetHelp(currentTarget)
-		} else if isValidFlag(arg, currentTarget) {
-			args[currentTarget][arg] = ""
-		} else if isValidParam(arg, currentTarget) {
-			currentParam = arg
+			printTargetHelp(target)
+		} else if isValidFlag(arg, target) {
+			setFlag(arg)
+		} else if isValidParam(arg, target) {
+			param = arg
 			expectArg = true
 		}
 	}
 
 	if expectArg {
-		log.Fatalf("missing argument for '%s' parameter, target '%s'", currentParam, currentTarget)
+		log.Fatalf(
+			"missing argument for '%s' parameter, target '%s'",
+			param, target,
+		)
 	}
 
-	args["global"]["main"] = os.Args[len(os.Args)-1]
+	MainFile = os.Args[len(os.Args)-1]
 
 	// Default values handling.
-	if _, exists := args["global"]["-path"]; !exists {
-		args["global"]["-path"] = "afbd"
+	if Path == "" {
+		Path = "afbd"
+	}
+	if MainBus == "" {
+		MainBus = "Main"
 	}
 
-	if len(args) == 1 {
-		fmt.Println("No target specified, run 'afbd -help' to check valid targets.")
+	if !CSync.Present && !Json.Present && !Python.Present && !VhdlApb.Present {
+		fmt.Println("no target specified, run 'afbd -help' to check valid targets")
 		os.Exit(1)
 	}
 
-	return args
+	postprocessCSync()
+	postprocessJson()
+	postprocessPython()
+	postprocessVhdlApb()
 }
 
-func SetOutputPaths(args map[string]map[string]string) {
-	for target, v := range args {
-		if target == "global" {
-			continue
-		}
+func setTarget(t string) {
+	switch t {
+	case "c-sync":
+		CSync.Present = true
+	case "json":
+		Json.Present = true
+	case "python":
+		Python.Present = true
+	case "vhdl-apb":
+		VhdlApb.Present = true
+	}
 
-		if _, exists := v["-path"]; exists {
-			continue
-		}
+	target = t
+}
 
-		args[target]["-path"] = args["global"]["-path"]
+func setFlag(flag string) {
+	switch target {
+	case "c-sync":
+		setFlagCSync(flag)
+	case "json":
+		setFlagJson(flag)
+	case "python":
+		setFlagPython(flag)
+	case "vhdl-apb":
+		setFlagVhdlApb(flag)
+	}
+}
+
+func setParam(arg string) {
+	switch target {
+	case "c-sync":
+		setParamCSync(arg)
+	case "json":
+		setParamJson(arg)
+	case "python":
+		setParamPython(arg)
+	case "vhdl-apb":
+		setParamVhdlApb(arg)
 	}
 }

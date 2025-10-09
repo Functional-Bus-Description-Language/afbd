@@ -14,15 +14,13 @@ import (
 	"os"
 )
 
-var printDebug bool = false
-
 type Logger struct{}
 
 func (l Logger) Write(p []byte) (int, error) {
 	print := true
 
 	if len(p) > 4 && string(p)[:5] == "debug" {
-		print = printDebug
+		print = args.Debug
 	}
 
 	if print {
@@ -37,39 +35,28 @@ func main() {
 	log.SetOutput(logger)
 	log.SetFlags(0)
 
-	cmdLineArgs := args.Parse()
-	args.SetOutputPaths(cmdLineArgs)
+	args.Parse()
 
-	if _, ok := cmdLineArgs["global"]["-debug"]; ok {
-		printDebug = true
-	}
-
-	mainName := "Main"
-	if _, ok := cmdLineArgs["global"]["-main"]; ok {
-		mainName = cmdLineArgs["global"]["-main"]
-	}
-	addTimestamp := false
-	if _, ok := cmdLineArgs["global"]["-add-timestamp"]; ok {
-		addTimestamp = true
-	}
-	bus, pkgsConsts, err := fbdl.Compile(cmdLineArgs["global"]["main"], mainName, addTimestamp)
+	bus, pkgsConsts, err := fbdl.Compile(
+		args.MainFile, args.MainBus, args.AddTimestamp,
+	)
 	if err != nil {
 		log.Fatalf("compile: %v", err)
 	}
 
-	if _, ok := cmdLineArgs["json"]; ok {
-		json.Generate(bus, pkgsConsts, cmdLineArgs["json"])
+	if args.Json.Present {
+		json.Generate(bus, pkgsConsts)
 	}
 
-	if _, ok := cmdLineArgs["c-sync"]; ok {
-		csync.Generate(bus, pkgsConsts, cmdLineArgs["c-sync"])
+	if args.CSync.Present {
+		csync.Generate(bus, pkgsConsts)
 	}
 
-	if _, ok := cmdLineArgs["python"]; ok {
-		python.Generate(bus, pkgsConsts, cmdLineArgs["python"])
+	if args.Python.Present {
+		python.Generate(bus, pkgsConsts)
 	}
 
-	if _, ok := cmdLineArgs["vhdl-apb"]; ok {
-		vhdlapb.Generate(bus, pkgsConsts, cmdLineArgs["vhdl-apb"])
+	if args.VhdlApb.Present {
+		vhdlapb.Generate(bus, pkgsConsts)
 	}
 }

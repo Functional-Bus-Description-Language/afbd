@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"text/template"
+
+	"github.com/Functional-Bus-Description-Language/afbd/internal/args"
 
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/pkg"
 )
@@ -19,7 +22,7 @@ type apbPackageFormatters struct {
 }
 
 func genAPBPackage(pkgsConsts map[string]*pkg.Package) {
-	filePath := outputPath + "apb.vhd"
+	filePath := path.Join(args.VhdlApb.Path, "apb.vhd")
 
 	f, err := os.Create(filePath)
 	if err != nil {

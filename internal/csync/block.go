@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"sync"
 
+	"github.com/Functional-Bus-Description-Language/afbd/internal/args"
 	"github.com/Functional-Bus-Description-Language/afbd/internal/utils"
 
 	"text/template"
@@ -59,7 +61,7 @@ func genBlock(b utils.Block, wg *sync.WaitGroup) {
 }
 
 func genBlockH(b utils.Block, hFmts BlockHFormatters) {
-	f, err := os.Create(outputPath + fmt.Sprintf("%s.h", b.Name))
+	f, err := os.Create(path.Join(args.CSync.Path, fmt.Sprintf("%s.h", b.Name)))
 	if err != nil {
 		log.Fatalf("generate C-Sync: %v", err)
 	}
@@ -76,7 +78,7 @@ func genBlockH(b utils.Block, hFmts BlockHFormatters) {
 }
 
 func genBlockC(b utils.Block, cFmts BlockCFormatters) {
-	f, err := os.Create(outputPath + fmt.Sprintf("%s.c", b.Name))
+	f, err := os.Create(path.Join(args.CSync.Path, fmt.Sprintf("%s.c", b.Name)))
 	if err != nil {
 		log.Fatalf("generate C-Sync: %v", err)
 	}

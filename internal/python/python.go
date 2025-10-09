@@ -4,14 +4,16 @@ import (
 	_ "embed"
 	"log"
 	"os"
+	"path"
 	"text/template"
+
+	"github.com/Functional-Bus-Description-Language/afbd/internal/args"
 
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/fn"
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/pkg"
 )
 
 var busWidth int64
-var outputPath string
 
 //go:embed templates/afbd.py
 var pythonTmplStr string
@@ -22,11 +24,10 @@ type pythonFormatters struct {
 	Code     string
 }
 
-func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package, cmdLineArgs map[string]string) {
+func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package) {
 	busWidth = bus.Width
-	outputPath = cmdLineArgs["-path"] + "/"
 
-	err := os.MkdirAll(outputPath, os.FileMode(int(0775)))
+	err := os.MkdirAll(args.Python.Path, os.FileMode(int(0775)))
 	if err != nil {
 		log.Fatalf("generate Python: %v", err)
 	}
@@ -35,7 +36,7 @@ func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package, cmdLineArgs map
 
 	code += genPkgConsts(pkgsConsts)
 
-	f, err := os.Create(outputPath + "afbd.py")
+	f, err := os.Create(path.Join(args.Python.Path, "afbd.py"))
 	if err != nil {
 		log.Fatalf("generate Python: %v", err)
 	}

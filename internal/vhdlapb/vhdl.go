@@ -5,6 +5,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/Functional-Bus-Description-Language/afbd/internal/args"
 	"github.com/Functional-Bus-Description-Language/afbd/internal/utils"
 
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/fn"
@@ -12,13 +13,11 @@ import (
 )
 
 var busWidth int64
-var outputPath string
 
-func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package, cmdLineArgs map[string]string) {
+func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package) {
 	busWidth = bus.Width
-	outputPath = cmdLineArgs["-path"] + "/"
 
-	err := os.MkdirAll(outputPath, os.FileMode(int(0775)))
+	err := os.MkdirAll(args.VhdlApb.Path, os.FileMode(int(0775)))
 	if err != nil {
 		log.Fatalf("generate vhdl-apb: %v", err)
 	}

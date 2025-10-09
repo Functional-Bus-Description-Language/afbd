@@ -43,56 +43,16 @@ func printHelp() {
 func printTargetHelp(target string) {
 	switch target {
 	case "c-sync":
-		fmt.Print(csyncHelpMsg)
+		fmt.Print(csyncHelp)
 	case "json":
-		fmt.Print(jsonHelpMsg)
+		fmt.Print(jsonHelp)
 	case "python":
-		fmt.Print(pythonHelpMsg)
+		fmt.Print(pythonHelp)
 	case "vhdl-apb":
-		fmt.Print(vhdlAPBHelpMsg)
+		fmt.Print(vhdlApbHelp)
 	default:
 		panic("should never happen")
 	}
 
 	os.Exit(0)
 }
-
-var csyncHelpMsg string = `Afbd help for C-Sync target.
-C-Sync target is a C language target with synchronous (blocking) interface
-functions.
-
-Flags:
-  -help        Display help.
-  -no-asserts  Do not include asserts. Not yet implemented.
-
-Parameters:
-  -path  Path for output files.
-`
-
-var pythonHelpMsg string = `Afbd help for Python target.
-
-Flags:
-  -help  Display help.
-
-Parameters:
-  -path  Path for output files.
-`
-
-var vhdlAPBHelpMsg string = `Afbd help for vhdl-apb target.
-
-Flags:
-  -help   Display help.
-  -no-psl Do not include PSL assertions. Not yet implemented.
-
-Parameters:
-  -path  Path for output files.
-`
-
-var jsonHelpMsg string = `Afbd help for json target.
-
-Flags:
-  -help  Display help.
-
-Parameters:
-  -path  Path for output files.
-`

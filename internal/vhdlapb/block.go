@@ -6,9 +6,11 @@ import (
 	"log"
 	"math"
 	"os"
+	"path"
 	"sync"
 	"text/template"
 
+	"github.com/Functional-Bus-Description-Language/afbd/internal/args"
 	"github.com/Functional-Bus-Description-Language/afbd/internal/utils"
 
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/cnst"
@@ -114,7 +116,7 @@ func genBlock(b utils.Block, wg *sync.WaitGroup) {
 		genMask(mask, &fmts)
 	}
 
-	filePath := outputPath + b.Name + ".vhd"
+	filePath := path.Join(args.VhdlApb.Path, (b.Name + ".vhd"))
 	f, err := os.Create(filePath)
 	if err != nil {
 		log.Fatalf("generate vhdl-apb: %v", err)

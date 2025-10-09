@@ -6,17 +6,19 @@ import (
 	"os"
 	"path"
 
+	"github.com/Functional-Bus-Description-Language/afbd/internal/args"
+
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/fn"
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/pkg"
 )
 
-func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package, cmdLineArgs map[string]string) {
-	err := os.MkdirAll(cmdLineArgs["-path"], os.FileMode(int(0775)))
+func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package) {
+	err := os.MkdirAll(args.Json.Path, os.FileMode(int(0775)))
 	if err != nil {
 		log.Fatalf("generate reg json: %v", err)
 	}
 
-	regFile, err := os.Create(path.Join(cmdLineArgs["-path"], "reg.json"))
+	regFile, err := os.Create(path.Join(args.Json.Path, "reg.json"))
 	if err != nil {
 		log.Fatalf("generate reg json: %v", err)
 	}
@@ -36,7 +38,7 @@ func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package, cmdLineArgs map
 		log.Fatalf("generate reg json: %v", err)
 	}
 
-	constsFile, err := os.Create(path.Join(cmdLineArgs["-path"], "consts.json"))
+	constsFile, err := os.Create(path.Join(args.Json.Path, "consts.json"))
 	if err != nil {
 		log.Fatalf("generate consts json: %v", err)
 	}

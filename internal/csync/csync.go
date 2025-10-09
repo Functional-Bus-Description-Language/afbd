@@ -4,9 +4,11 @@ import (
 	_ "embed"
 	"log"
 	"os"
+	"path"
 	"sync"
 	"text/template"
 
+	"github.com/Functional-Bus-Description-Language/afbd/internal/args"
 	"github.com/Functional-Bus-Description-Language/afbd/internal/c"
 	"github.com/Functional-Bus-Description-Language/afbd/internal/utils"
 
@@ -15,7 +17,6 @@ import (
 )
 
 var busWidth int64
-var outputPath string
 
 var addrType c.Type
 var readType c.Type
@@ -31,16 +32,15 @@ type afbdHeaderFormatters struct {
 	WriteType string
 }
 
-func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package, cmdLineArgs map[string]string) {
+func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package) {
 	busWidth = bus.Width
-	outputPath = cmdLineArgs["-path"] + "/"
 
-	err := os.MkdirAll(outputPath, os.FileMode(int(0775)))
+	err := os.MkdirAll(args.CSync.Path, os.FileMode(int(0775)))
 	if err != nil {
 		log.Fatalf("generate C-Sync: %v", err)
 	}
 
-	hFile, err := os.Create(outputPath + "afbd.h")
+	hFile, err := os.Create(path.Join(args.CSync.Path, "afbd.h"))
 	if err != nil {
 		log.Fatalf("generate C-Sync: %v", err)
 	}
