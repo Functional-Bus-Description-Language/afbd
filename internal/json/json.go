@@ -15,30 +15,30 @@ import (
 func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package) {
 	err := os.MkdirAll(args.Json.Path, os.FileMode(int(0775)))
 	if err != nil {
-		log.Fatalf("generate reg json: %v", err)
+		log.Fatalf("generate registerification json: %v", err)
 	}
 
-	regFile, err := os.Create(path.Join(args.Json.Path, "reg.json"))
+	regFile, err := os.Create(path.Join(args.Json.Path, args.Json.RegName))
 	if err != nil {
-		log.Fatalf("generate reg json: %v", err)
+		log.Fatalf("generate registerification json: %v", err)
 	}
 
 	byteArray, err := json.MarshalIndent(bus, "", "\t")
 	if err != nil {
-		log.Fatalf("generate reg json: %v", err)
+		log.Fatalf("generate registerification json: %v", err)
 	}
 
 	_, err = regFile.Write(byteArray)
 	if err != nil {
-		log.Fatalf("generate reg json: %v", err)
+		log.Fatalf("generate registerification json: %v", err)
 	}
 
 	err = regFile.Close()
 	if err != nil {
-		log.Fatalf("generate reg json: %v", err)
+		log.Fatalf("generate registerification json: %v", err)
 	}
 
-	constsFile, err := os.Create(path.Join(args.Json.Path, "const.json"))
+	constsFile, err := os.Create(path.Join(args.Json.Path, args.Json.ConstName))
 	if err != nil {
 		log.Fatalf("generate constants json: %v", err)
 	}
