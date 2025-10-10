@@ -38,23 +38,23 @@ func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package) {
 		log.Fatalf("generate reg json: %v", err)
 	}
 
-	constsFile, err := os.Create(path.Join(args.Json.Path, "consts.json"))
+	constsFile, err := os.Create(path.Join(args.Json.Path, "const.json"))
 	if err != nil {
-		log.Fatalf("generate consts json: %v", err)
+		log.Fatalf("generate constants json: %v", err)
 	}
 
 	byteArray, err = json.MarshalIndent(pkgsConsts, "", "\t")
 	if err != nil {
-		log.Fatalf("generate consts json: %v", err)
+		log.Fatalf("generate constants json: %v", err)
 	}
 
 	_, err = constsFile.Write(byteArray)
 	if err != nil {
-		log.Fatalf("generate consts json: %v", err)
+		log.Fatalf("generate constants json: %v", err)
 	}
 
 	err = constsFile.Close()
 	if err != nil {
-		log.Fatalf("generate consts json: %v", err)
+		log.Fatalf("generate constants json: %v", err)
 	}
 }
