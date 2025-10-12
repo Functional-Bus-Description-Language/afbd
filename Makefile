@@ -11,8 +11,9 @@ help:
 	@echo "  cc-linux  Cross compile for Linux."
 	@echo "  default   Run build."
 	@echo "Quality targets:"
-	@echo "  fmt   Format files with go fmt."
-	@echo "  lint  Lint files with golangci-lint."
+	@echo "  fmt     Format files with go fmt."
+	@echo "  lint    Lint go files with golangci-lint."
+	@echo "  pylint  Lint python files with pylint."
 	@echo "Test targets:"
 	@echo "  test  Run go test."
 	@echo "  tb    Run testbenches."
@@ -37,6 +38,8 @@ fmt:
 lint:
 	golangci-lint run
 
+pylint:
+	pylint --disable=all --enable=E internal/python/templates/afbd.py
 
 # Test targets
 test:
