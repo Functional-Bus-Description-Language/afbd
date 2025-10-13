@@ -6,11 +6,12 @@ import afbd
 
 WRITE_FIFO_PATH = sys.argv[1]
 READ_FIFO_PATH = sys.argv[2]
+REG_JSON = sys.argv[3]
 
 iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
 try:
-    Main = afbd.Main(iface)
+    Main, _ = afbd.generate(iface, REG_JSON)
 
     expected0 = 0b010101
     expected1 = 0b11

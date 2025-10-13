@@ -7,13 +7,15 @@ import afbd
 
 WRITE_FIFO_PATH = sys.argv[1]
 READ_FIFO_PATH = sys.argv[2]
+REG_JSON = sys.argv[3]
+CONST_JSON = sys.argv[4]
 
 iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
 try:
-    Main = afbd.Main(iface)
+    Main, const = afbd.generate(iface, REG_JSON, CONST_JSON)
 
-    value = 2 ** afbd.mainPkg.WIDTH - 1
+    value = 2 ** const['main']['WIDTH'] - 1
 
     print(f"Writing VALID_VALUE ({value}) to Cfg register")
     Main.Cfg.write(value)

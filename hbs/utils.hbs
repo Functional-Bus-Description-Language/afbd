@@ -41,6 +41,8 @@ namespace eval utils {
 		set swGwFifo "/tmp/afbd/$ctx/$sw-to-$hdl"
 		set gwSwFifo "/tmp/afbd/$ctx/$hdl-to-$sw"
 		set logDir "/tmp/afbd/$ctx/tb-$sw"
+		set reg_json_file "../../../../../autogen/$ctx/reg.json"
+		set const_json_file "../../../../../autogen/$ctx/const.json"
 
 		set pythonPaths "[pwd]/tests/co-simulations/common/python:[pwd]/autogen/$ctx/tb-$sw"
 		if {[info exists env(PYTHONPATH)]} {
@@ -49,7 +51,10 @@ namespace eval utils {
 			set ::env(PYTHONPATH) $pythonPaths
 		}
 
-		hbs::Exec python3 ../$sw/tb.py $swGwFifo $gwSwFifo > $logDir/$hdl.log &
+		hbs::Exec python3 ../$sw/tb.py \
+		  $swGwFifo $gwSwFifo \
+		  $reg_json_file $const_json_file \
+		  > $logDir/$hdl.log &
 	}
 
 	proc compileAndRunC {ctx hdl sw} {

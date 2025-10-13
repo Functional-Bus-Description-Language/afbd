@@ -7,13 +7,14 @@ import afbd
 
 WRITE_FIFO_PATH = sys.argv[1]
 READ_FIFO_PATH = sys.argv[2]
+REG_JSON = sys.argv[3]
 
 CLK_PERIOD = 10
 
 iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
 try:
-    Main = afbd.Main(iface)
+    Main, _ = afbd.generate(iface, REG_JSON)
 
     id = Main.ID.read()
     assert id == Main.ID.value, f"Read wrong ID {id}, expecting {Main.ID.value}"

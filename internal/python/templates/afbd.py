@@ -2,17 +2,243 @@
 # Do not edit it manually, unless you really know what you do.
 # https://github.com/Functional-Bus-Description-Language/afbd
 
+import json
 import math
 import time
 
-BUS_WIDTH = {{.BusWidth}}
+
+def generate(iface, reg_file, const_file=None):
+    """Generate bus object and optionally packages constants dictionary.
+
+    Args:
+      iface: Interface used for acessing the bus registers.
+      reg_file: Path for JSON file with registerification results.
+      const_file: Path for JSON file with packages constants.
+
+    Returns tuple (bus, packages constants dictionary).
+    """
+    bus = Bus(iface, reg_file)
+
+    consts = None
+    if const_file is not None:
+        consts = gen_pkgs_consts(const_file)
+
+    return bus, consts
+
+
+def gen_pkgs_consts(const_file):
+    json_stream = open(const_file)
+    pkgs_consts = json.load(json_stream)
+    json_stream.close()
+
+    consts = dict()
+    for pkg_name, symbols in pkgs_consts.items():
+        cs = gen_consts(symbols['Consts'])
+        consts[pkg_name] = cs
+
+    return consts
+
+def gen_consts(consts):
+    cs = dict()
+
+    if consts['Bools'] is not None:
+        cs |= consts['Bools']
+    if consts['BoolLists'] is not None:
+        cs |= consts['BoolLists']
+    if consts['Floats'] is not None:
+        cs |= consts['Floats']
+    if consts['Ints'] is not None:
+        cs |= consts['Ints']
+    if consts['IntLists'] is not None:
+        cs |= consts['IntLists']
+    if consts['Strings'] is not None:
+        cs |= consts['Strings']
+
+    return cs
+
+
+class Block:
+    def __init__(self, iface, block):
+        self.iface = iface
+
+        self._gen_consts(block)
+        self._gen_subblocks(block)
+
+        self._gen_configs(block)
+        self._gen_masks(block)
+        self._gen_procs(block)
+        self._gen_statics(block)
+        self._gen_statuses(block)
+        self._gen_streams(block)
+
+    def _gen_consts(self, block):
+        consts = gen_consts(block['Consts'])
+        for name, val in consts.items():
+            setattr(self, name, val)
+
+    def _gen_subblocks(self, block):
+        for subblock in block['Subblocks'] or []:
+            setattr(self, subblock['Name'], Block(self.iface, subblock))
+
+    def _gen_configs(self, block):
+        for config in block["Configs"] or []:
+            c = self._gen_config(config, block)
+            setattr(self, config["Name"], c)
+
+    def _gen_config(self, config, block):
+        typ = config['Access']['Type']
+        if typ == 'SingleOneReg':
+            return ConfigSingleOneReg(self.iface, config, block)
+        elif typ == 'SingleNRegs':
+            return ConfigSingleNRegs(self.iface, config, block)
+        elif typ == 'ArrayOneInReg':
+            return ConfigArrayOneInReg(self.iface, config, block)
+        elif typ == 'ArrayOneReg':
+            return ConfigArrayOneReg(self.iface, config, block)
+        elif typ == 'ArrayNInReg':
+            return ConfigArrayNInReg(self.iface, config, block)
+        elif typ == 'ArrayNInRegMInEndReg':
+            return ConfigArrayNInRegMInEndReg(self.iface, config, block)
+        else:
+            raise Exception(f"unimplemented for access type '{typ}'")
+
+    def _gen_masks(self, block):
+        for mask in block["Masks"] or []:
+            m = self._gen_mask(mask, block)
+            setattr(self, mask["Name"], m)
+
+    def _gen_mask(self, mask, block):
+        typ = mask['Access']['Type']
+        if typ == 'SingleOneReg':
+            return MaskSingleOneReg(self.iface, mask, block)
+        elif typ == 'SingleNRegs':
+            return MaskSingleNRegs(self.iface, mask, block)
+        else:
+            raise Exception(f"unimplemented for access type '{typ}'")
+
+    def _gen_procs(self, block):
+        for proc in block["Procs"] or []:
+            p = self._gen_proc(proc, block)
+            setattr(self, proc["Name"], p)
+
+    def _gen_proc(self, proc, block):
+        lp = 0 if proc['Params'] is None else len(proc['Params'])
+        lr = 0 if proc['Returns'] is None else len(proc['Returns'])
+        if lp == 0 and lr == 0:
+            return EmptyProc(self.iface, proc, block)
+        elif lp > 0 and lr == 0:
+            return ParamsProc(self.iface, proc, block)
+        elif lp == 0 and lr > 0:
+            return ReturnsProc(self.iface, proc, block)
+        else:
+            return ParamsAndReturnsProc(self.iface, proc, block)
+
+    def _gen_statics(self, block):
+        for static in block["Statics"] or []:
+            s = self._gen_static(static, block)
+            setattr(self, static["Name"], s)
+
+    def _gen_static(self, static, block):
+        typ = static['Access']['Type']
+        if typ == 'SingleOneReg':
+            return StaticSingleOneReg(self.iface, static, block)
+        elif typ == 'SingleNRegs':
+            return StaticSingleNRegs(self.iface, static, block)
+        else:
+            raise Exception(f"unimplemented for access type '{typ}'")
+
+    def _gen_statuses(self, block):
+        for status in block["Statuses"] or []:
+            s = self._gen_status(status, block)
+            setattr(self, status["Name"], s)
+
+    def _gen_status(self, status, block):
+        typ = status['Access']['Type']
+        if typ == 'SingleOneReg':
+            return StatusSingleOneReg(self.iface, status, block)
+        elif typ == 'SingleNRegs':
+            return StatusSingleNRegs(self.iface, status, block)
+        elif typ == 'ArrayOneInReg':
+            return StatusArrayOneInReg(self.iface, status, block)
+        elif typ == 'ArrayOneInNRegs':
+            return StatusArrayOneInNRegs(self.iface, status, block)
+        elif typ == 'ArrayOneReg':
+            return StatusArrayOneReg(self.iface, status, block)
+        elif typ == 'ArrayNInReg':
+            return StatusArrayNInReg(self.iface, status, block)
+        elif typ == 'ArrayNInRegMInEndReg':
+            return StatusArrayNInRegMInEndReg(self.iface, status, block)
+        else:
+            raise Exception(f"unimplemented for access type '{typ}'")
+
+    def _gen_streams(self, block):
+        for stream in block["Streams"] or []:
+            s = self._gen_stream(stream, block)
+            setattr(self, stream["Name"], s)
+
+    def _gen_stream(self, stream, block):
+        lr = 0 if stream['Returns'] is None else len(stream['Returns'])
+        if lr > 0:
+            return Upstream(self.iface, stream, block)
+        else:
+            return Downstream(self.iface, stream, block)
+
+class Bus(Block):
+    def __init__(self, iface, reg_file):
+        self._reg_file = reg_file
+
+        json_stream = open(reg_file)
+        bus = json.load(json_stream)
+        json_stream.close()
+
+        super().__init__(iface, bus)
+
+
+#
+# Utility functions
+#
 
 def calc_mask(m):
-    """
-    calc_mask calculates mask based on tuple (End Bit, Start Bit).
+    """Calculate bit mask based on tuple (End Bit, Start Bit).
+
     The returned mask is shifted to the right.
     """
     return (((1 << (m[0] + 1)) - 1) ^ ((1 << m[1]) - 1)) >> m[1]
+
+
+def calc_delay(d):
+    """Calculate numeric delay value based on FBDL delay."""
+    if d is None:
+        return None
+    return d["S"] + d["Ns"] * 1e-9
+
+def calc_numeric_value(v):
+    """Calculate numeric value based on FBDL value."""
+    v = v.replace('"', '')
+    if v[0] in "bBoOxX":
+        v = "0" + v
+    return int(v, 0) # base=0, let Python detect the prefix automatically
+
+def access_start_addr(acs):
+    """Return access start address based on access dictionary."""
+    if 'StartAddr' in acs:
+        return acs['StartAddr']
+    return acs['Addr']
+
+
+def access_reg_count(acs, bus_width):
+    """Return access register count based on access dictionary."""
+    if 'RegCount' in acs:
+        return acs['RegCount']
+    elif acs['Type'] == 'ArrayOneInNRegs':
+        regs_per_item = int(acs['ItemWidth'] / bus_width)
+        if acs['ItemWidth'] % bus_width != 0:
+            regs_per_item += 1
+
+        return acs['ItemCount'] * regs_per_item
+
+    return 1
+
 
 class _BufferIface:
     """
@@ -20,6 +246,7 @@ class _BufferIface:
     (after reading)/(before writing) the target buffer. It is very useful
     as it allows treating proc or stream params/returns as configs/statuses.
     """
+
     def set_buf(self, buf):
         self.buf = buf
 
@@ -29,6 +256,7 @@ class _BufferIface:
     def read(self, addr):
         return self.buf[addr]
 
+
 def check_arg_values(params, *args):
     """
     check_arg_values checks that all arguments are in valid range and raises
@@ -37,117 +265,130 @@ def check_arg_values(params, *args):
     for arg_idx, arg in enumerate(args):
         param = params[arg_idx]
 
-        type = param['Access']['Type']
+        type = param["Access"]["Type"]
 
         if type.startswith("Single"):
-            assert 0 <= arg < 2 ** param['Width'], \
-                "{} value overrange ({})".format(param['Name'], arg)
+            assert 0 <= arg < 2 ** param["Width"], "{} value overrange ({})".format(
+                param["Name"], arg
+            )
         elif type.startswith("Array"):
-            assert len(arg) == param['Access']['ItemCount'], \
-                "invalid number of items ({}) for {} param, expecting {} items".format(len(arg), param['Name'], param['ItemCount'])
+            assert (
+                len(arg) == param["Access"]["ItemCount"]
+            ), "invalid number of items ({}) for {} param, expecting {} items".format(
+                len(arg), param["Name"], param["ItemCount"]
+            )
 
             for val_idx, v in enumerate(arg):
-                assert 0 <= v < 2 ** param['Width'], "{}[{}] value overrange ({})".format(param['Name'], val_idx, v)
+                assert (
+                    0 <= v < 2 ** param["Width"]
+                ), "{}[{}] value overrange ({})".format(param["Name"], val_idx, v)
         else:
             raise Exception("invalid param access type {}".format(type))
 
-def pack_params(params, *args):
+
+def pack_params(bus_width, params, *args):
     check_arg_values(params, *args)
 
     buf = []
-    addr = None # Current argument address
+    addr = None  # Current argument address
     data = 0
 
     for arg_idx, arg in enumerate(args):
         param = params[arg_idx]
-        a = param['Access']
+        acs = param['Access']
 
         if addr is None:
-            addr = a['StartAddr']
-        elif a['StartAddr'] > addr:
+            addr = access_start_addr(acs)
+        elif access_start_addr(acs) > addr:
             buf.append(data)
             data = 0
-            addr = a['StartAddr']
+            addr = access_start_addr(acs)
 
-        if a['Type'] == 'SingleOneReg':
-            data |= arg << a['StartBit']
-        elif a['Type'] == 'SingleNRegs':
-            for r in range(a['RegCount']):
+        if acs['Type'] == 'SingleOneReg':
+            data |= arg << acs['StartBit']
+        elif acs['Type'] == 'SingleNRegs':
+            for r in range(acs['RegCount']):
                 if r == 0:
-                    data |= (arg & calc_mask((BUS_WIDTH - 1, a['StartBit']))) << a['StartBit']
+                    data |= (arg & calc_mask((bus_width - 1, acs['StartBit']))) << acs['StartBit']
                     buf.append(data)
-                    arg = arg >> (BUS_WIDTH - a['StartBit'])
+                    arg = arg >> (bus_width - acs['StartBit'])
                 else:
                     addr += 1
-                    data = arg & calc_mask((BUS_WIDTH, 0))
-                    arg = arg >> BUS_WIDTH
-                    if r < a['RegCount'] - 1:
+                    data = arg & calc_mask((bus_width, 0))
+                    arg = arg >> bus_width
+                    if r < acs['RegCount'] - 1:
                         buf.append(data)
                         data = 0
-        elif a['Type'] == 'ArrayNRegs':
-            start_bit = a['StartBit']
-            for i, v in  enumerate(arg):
+        elif acs['Type'] == 'ArrayNRegs':
+            start_bit = acs['StartBit']
+            for i, v in enumerate(arg):
                 width = param['Width']
                 # Number of registers ith argument from vector occupies.
-                reg_count = int(math.ceil((width - (BUS_WIDTH - start_bit)) / BUS_WIDTH)) + 1
+                reg_count = (
+                    int(math.ceil((width - (bus_width - start_bit)) / bus_width)) + 1
+                )
                 for _ in range(reg_count):
                     reg_width = width
-                    if reg_width > BUS_WIDTH - start_bit:
-                        reg_width = BUS_WIDTH - start_bit
+                    if reg_width > bus_width - start_bit:
+                        reg_width = bus_width - start_bit
                     data |= (v & ((1 << reg_width) - 1)) << start_bit
                     v >>= reg_width
-                    start_bit = (start_bit + reg_width)
-                    if start_bit >= BUS_WIDTH:
+                    start_bit = start_bit + reg_width
+                    if start_bit >= bus_width:
                         buf.append(data)
                         data = 0
-                        start_bit %= BUS_WIDTH
+                        start_bit %= bus_width
                     width -= reg_width
         else:
-            raise Exception("unhandled access type {}".format(a['Type']))
+            raise Exception(f"unhandled access type '{acs['Type']}'")
 
     buf.append(data)
 
     return buf
 
-def create_mock_returns(buf_iface, start_addr, returns):
+
+def create_mock_returns(buf_iface, returns, block):
     """
-    Create_mock_returns creates mock returns that can be used with internal software buffer.
-    It is useful to be used with proc with returns and with upstram.
+    Create mock returns that can be used with internal software buffer.
+    It is useful to be used with returns proc or with upstram.
     """
+    buf_block = {
+        'AddrSpace': {'Start': 0 - access_start_addr(returns[0]['Access'])},
+        'Width': block['Width']
+    }
     buf_size = 0
     rets = []
     for ret in returns:
-        a = ret['Access']
-        buf_size += a['RegCount']
+        acs = ret['Access']
+        buf_size += access_reg_count(acs, block['Width']) # TODO: Is it ok? What if multiple returns are placed in the same register?
         r = {}
         r['Name'] = ret['Name']
         # TODO: Add support for groups.
 
-        if a['Type'] == 'SingleOneReg':
-            r['Status'] = StatusSingleOneReg(
-                buf_iface, a['StartAddr'] - start_addr, a['StartBit'], a['EndBit']
-            )
-        elif a['Type'] == 'SingleNRegs':
-            r['Status'] = StatusSingleNRegs(
-                buf_iface,
-                a['StartAddr'] - start_addr,
-                a['RegCount'],
-                (BUS_WIDTH - 1, a['StartBit']),
-                (a['EndBit'], 0),
-            )
+        status = ret.copy()
+        status
+
+        # TODO: Use gen_status functions here.
+        if acs['Type'] == 'SingleOneReg':
+            r['Status'] = StatusSingleOneReg(buf_iface, ret, buf_block)
+        elif acs['Type'] == 'SingleNRegs':
+            r['Status'] = StatusSingleNRegs(buf_iface, ret, buf_block)
         else:
-            raise Exception("unimplemented")
+            raise Exception(f"unimplemented for access type '{acs['Type']}'")
 
         rets.append(r)
 
     return buf_size, rets
 
+
 class EmptyProc:
-    def __init__(self, iface, call_addr, delay, exit_addr):
+    def __init__(self, iface, proc, block):
         self.iface = iface
-        self.call_addr = call_addr
-        self.delay = delay
-        self.exit_addr = exit_addr
+        self.call_addr = block['AddrSpace']['Start'] + proc['CallAddr']
+        self.delay = calc_delay(proc["Delay"])
+        if self.delay is not None:
+            self.exit_addr = block['AddrSpace']['Start'] + proc['ExitAddr']
+
     def __call__(self):
         self.iface.write(self.call_addr, 0)
         if self.delay is not None:
@@ -155,19 +396,28 @@ class EmptyProc:
                 time.sleep(self.delay)
             self.iface.read(self.exit_addr)
 
+
 class ParamsProc:
-    def __init__(self, iface, params_start_addr, params, delay, exit_addr):
+    def __init__(self, iface, proc, block):
         self.iface = iface
-        self.params_start_addr = params_start_addr
-        self.params = params
-        self.delay = delay
-        self.exit_addr = exit_addr
+        self.params = proc['Params']
+        self.params_start_addr = block['AddrSpace']['Start'] + access_start_addr(
+            self.params[0]['Access']
+        )
+        self.delay = calc_delay(proc['Delay'])
+        if self.delay is not None:
+            self.exit_addr = block['AddrSpace']['Start'] + proc['ExitAddr']
+
+        self.block_width = block['Width']
 
     def __call__(self, *args):
-        assert len(args) == len(self.params), \
-            "{}() takes {} arguments but {} were given".format(self.__name__, len(self.params), len(args))
+        assert len(args) == len(
+            self.params
+        ), "{}() takes {} arguments but {} were given".format(
+            self.__name__, len(self.params), len(args)
+        )
 
-        buf = pack_params(self.params, *args)
+        buf = pack_params(self.block_width, self.params, *args)
 
         if len(buf) == 1:
             self.iface.write(self.params_start_addr, buf[0])
@@ -179,6 +429,7 @@ class ParamsProc:
                 time.sleep(self.delay)
             self.iface.read(self.exit_addr)
 
+
 class ReturnsProc:
     def __init__(self, iface, returns_start_addr, returns, delay, call_addr):
         self.iface = iface
@@ -187,7 +438,9 @@ class ReturnsProc:
         self.call_addr = call_addr
 
         self.buf_iface = _BufferIface()
-        self.buf_size, self.returns = create_mock_returns(self.buf_iface, returns_start_addr, returns)
+        self.buf_size, self.returns = create_mock_returns(
+            self.buf_iface, returns_start_addr, returns
+        )
 
     def __call__(self):
         if self.delay is not None:
@@ -201,13 +454,14 @@ class ReturnsProc:
             buf = self.iface.readb(self.returns_start_addr, self.buf_size)
 
         self.buf_iface.set_buf(buf)
-        tup = [] # List to allow append but must be cast to tuple.
+        tup = []  # List to allow append but must be cast to tuple.
 
         for ret in self.returns:
             # NOTE: Groups are not yet supported so it is safe to immediately append.
             tup.append(ret['Status'].read())
 
         return tuple(tup)
+
 
 class ParamsAndReturnsProc:
     def __init__(self, iface, params_start_addr, params, returns_start_addr, returns, delay):
@@ -218,13 +472,18 @@ class ParamsAndReturnsProc:
 
         self.returns_start_addr = returns_start_addr
         self.returns_buf_iface = _BufferIface()
-        self.returns_buf_size, self.returns = create_mock_returns(self.returns_buf_iface, returns_start_addr, returns)
+        self.returns_buf_size, self.returns = create_mock_returns(
+            self.returns_buf_iface, returns_start_addr, returns
+        )
 
         self.delay = delay
 
     def __call__(self, *args):
-        assert len(args) == len(self.params), \
-            "{}() takes {} arguments but {} were given".format(self.__name__, len(self.params), len(args))
+        assert len(args) == len(
+            self.params
+        ), "{}() takes {} arguments but {} were given".format(
+            self.__name__, len(self.params), len(args)
+        )
 
         params_buf = pack_params(self.params, *args)
         if len(params_buf) == 1:
@@ -237,54 +496,61 @@ class ParamsAndReturnsProc:
                 time.sleep(self.delay)
 
         if self.returns_buf_size == 1:
-                returns_buf = [self.iface.read(self.returns_start_addr)]
+            returns_buf = [self.iface.read(self.returns_start_addr)]
         else:
-            returns_buf = self.iface.readb(self.returns_start_addr, self.returns_buf_size)
+            returns_buf = self.iface.readb(
+                self.returns_start_addr, self.returns_buf_size
+            )
         self.returns_buf_iface.set_buf(returns_buf)
-        tup = [] # List to allow append but must be cast to tuple.
+        tup = []  # List to allow append but must be cast to tuple.
         for ret in self.returns:
             # NOTE: Groups are not yet supported so it is safe to immediately append.
-            tup.append(ret['Status'].read())
+            tup.append(ret["Status"].read())
 
         return tuple(tup)
 
 
 class Static:
-    def __init__(self, value):
-        self._value = value
+    def __init__(self, static):
+        self._value = calc_numeric_value(static['InitValue'])
+
     @property
     def value(self):
         return self._value
+
     @value.setter
     def value(self, v):
         raise Exception(f"cannot set value of static element")
 
 
 class StatusSingleOneReg:
-    def __init__(self, iface, addr, start_bit, end_bit):
+    def __init__(self, iface, status, block):
         self.iface = iface
 
-        self.addr = addr
-        self.start_bit = start_bit
-
-        self.mask = calc_mask((end_bit, start_bit))
-        self.width = end_bit - start_bit + 1
+        acs = status['Access']
+        self.addr = block['AddrSpace']['Start'] + acs['Addr']
+        self.start_bit = acs['StartBit']
+        self.mask = calc_mask((acs['EndBit'], acs['StartBit']))
+        self.width = acs['EndBit'] - acs['StartBit'] + 1
 
     def read(self):
         return (self.iface.read(self.addr) >> self.start_bit) & self.mask
 
+
 class StaticSingleOneReg(Static, StatusSingleOneReg):
-    def __init__(self, iface, addr, start_bit, end_bit, value):
-        Static.__init__(self, value)
-        StatusSingleOneReg.__init__(self, iface, addr, start_bit, end_bit)
+    def __init__(self, iface, static, block):
+        Static.__init__(self, static)
+        StatusSingleOneReg.__init__(self, iface, static, block)
+
 
 class ConfigSingleOneReg(StatusSingleOneReg):
-    def __init__(self, iface, addr, start_bit, end_bit):
-        super().__init__(iface, addr, start_bit, end_bit)
+    def __init__(self, iface, config, block):
+        super().__init__(iface, config, block)
 
     def write(self, data):
-        assert 0 <= data < 2 ** self.width, "value overrange ({})".format(data)
+        assert 0 <= data < 2**self.width, "value overrange ({})".format(data)
         self.iface.write(self.addr, data << self.start_bit)
+
 
 class Mask:
     def _bits_to_iterable(self, bits):
@@ -306,8 +572,10 @@ class Mask:
 
 
 class MaskSingleOneReg(Mask, StatusSingleOneReg):
-    def __init__(self, iface, addr, start_bit, end_bit):
-        super().__init__(iface, addr, start_bit, end_bit)
+    def __init__(self, iface, mask, block):
+        super().__init__(iface, mask, block)
+
+        self.block_width = block['Width']
 
     def set(self, bits=None):
         bits = self._bits_to_iterable(bits)
@@ -360,7 +628,7 @@ class MaskSingleOneReg(Mask, StatusSingleOneReg):
         bits = self._bits_to_iterable(bits)
         self._assert_bits_in_range(bits)
 
-        mask = 2**BUS_WIDTH - 1
+        mask = 2**self.block_width - 1
         for b in bits:
             mask ^= 1 << b
 
@@ -369,48 +637,57 @@ class MaskSingleOneReg(Mask, StatusSingleOneReg):
 
 
 class StatusSingleNRegs:
-    def __init__(self, iface, start_addr, reg_count, start_mask, end_mask):
+    def __init__(self, iface, status, block):
         self.iface = iface
-        self.addrs = list(range(start_addr, start_addr + reg_count))
+
+        acs = status['Access']
+        start_addr = block['AddrSpace']['Start'] + acs['StartAddr']
+        self.addrs = list(range(start_addr, start_addr + acs['RegCount']))
         self.width = 0
         self.masks = []
         self.reg_shifts = []
         self.data_shifts = []
 
-        for i in range(reg_count):
+        for i in range(acs['RegCount']):
             if i == 0:
-                self.masks.append(calc_mask(start_mask))
-                self.reg_shifts.append(start_mask[1])
+                self.masks.append(calc_mask((block['Width'] - 1, acs['StartBit'])))
+                self.reg_shifts.append(acs['StartBit'])
                 self.data_shifts.append(0)
-                self.width += start_mask[0] - start_mask[1] + 1
+                self.width += block['Width'] - acs['StartBit']
             else:
                 self.reg_shifts.append(0)
                 self.data_shifts.append(self.width)
-                if i == reg_count - 1:
-                    self.masks.append(calc_mask(end_mask))
-                    self.width += end_mask[0] - end_mask[1] + 1
+                if i == acs['RegCount'] - 1:
+                    self.masks.append(calc_mask((acs['EndBit'], 0)))
+                    self.width += acs['EndBit'] + 1
                 else:
-                    self.masks.append(calc_mask((BUS_WIDTH - 1, 0)))
-                    self.width += BUS_WIDTH
+                    self.masks.append(calc_mask((block['Width'] - 1, 0)))
+                    self.width += block['Width']
 
     def read(self):
         data = 0
         for i, a in enumerate(self.addrs):
-            data |= ((self.iface.read(a) >> self.reg_shifts[i]) & self.masks[i]) << self.data_shifts[i]
+            data |= (
+                (self.iface.read(a) >> self.reg_shifts[i]) & self.masks[i]
+            ) << self.data_shifts[i]
         return data
 
+
 class ConfigSingleNRegs(StatusSingleNRegs):
-    def __init__(self, iface, start_addr, reg_count, start_mask, end_mask):
-        super().__init__(iface, start_addr, reg_count, start_mask, end_mask)
+    def __init__(self, iface, config, block):
+        super().__init__(iface, config, block)
 
     def write(self, data):
-        assert 0 <= data < 2 ** self.width, "value overrange ({})".format(data)
+        assert 0 <= data < 2**self.width, "value overrange ({})".format(data)
         for i, a in enumerate(self.addrs):
-            self.iface.write(a, ((data >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i])
+            self.iface.write(
+                a, ((data >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
+            )
+
 
 class MaskSingleNRegs(StatusSingleNRegs, Mask):
-    def __init__(self, iface, start_addr, reg_count, start_mask, end_mask):
-        super().__init__(iface, start_addr, reg_count, start_mask, end_mask)
+    def __init__(self, iface, mask, block):
+        super().__init__(iface, mask, block)
 
     def set(self, bits=None):
         bits = self._bits_to_iterable(bits)
@@ -421,7 +698,9 @@ class MaskSingleNRegs(StatusSingleNRegs, Mask):
             mask |= 1 << b
 
         for i, a in enumerate(self.addrs):
-            self.iface.write(a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i])
+            self.iface.write(
+                a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
+            )
 
     def clear(self, bits=None):
         bits = self._bits_to_iterable(bits)
@@ -432,7 +711,9 @@ class MaskSingleNRegs(StatusSingleNRegs, Mask):
             mask ^= 1 << b
 
         for i, a in enumerate(self.addrs):
-            self.iface.write(a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i])
+            self.iface.write(
+                a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
+            )
 
     def update_set(self, bits):
         self._assert_bits_to_update(bits)
@@ -446,7 +727,9 @@ class MaskSingleNRegs(StatusSingleNRegs, Mask):
 
         mask |= self.read()
         for i, a in enumerate(self.addrs):
-            self.iface.write(a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i])
+            self.iface.write(
+                a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
+            )
 
     def update_clear(self, bits):
         self._assert_bits_to_update(bits)
@@ -460,7 +743,9 @@ class MaskSingleNRegs(StatusSingleNRegs, Mask):
 
         mask &= self.read()
         for i, a in enumerate(self.addrs):
-            self.iface.write(a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i])
+            self.iface.write(
+                a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
+            )
 
     def toggle(self, bits=None):
         bits = self._bits_to_iterable(bits)
@@ -472,22 +757,26 @@ class MaskSingleNRegs(StatusSingleNRegs, Mask):
 
         mask ^= self.read()
         for i, a in enumerate(self.addrs):
-            self.iface.write(a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i])
+            self.iface.write(
+                a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
+            )
 
 
 class StaticSingleNRegs(Static, StatusSingleNRegs):
-    def __init__(self, iface, start_addr, reg_count, start_mask, end_mask, value):
-        Static.__init__(self, value)
-        StatusSingleNRegs.__init__(self, iface, start_addr, reg_count, start_mask, end_mask)
+    def __init__(self, iface, static, block):
+        Static.__init__(self, static)
+        StatusSingleNRegs.__init__(self, iface, static, block)
 
 
 class StatusArrayOneReg:
-    def __init__(self, iface, addr, start_bit, width, item_count):
+    def __init__(self, iface, status, block):
         self.iface = iface
-        self.addr = addr
-        self.start_bit = start_bit
-        self.width = width
-        self.item_count = item_count
+
+        acs = status['Access']
+        self.addr = block['AddrSpace']['Start'] + acs['Addr']
+        self.start_bit = acs['StartBit']
+        self.item_count = acs['ItemCount']
+        self.width = status['Width']
 
     def __len__(self):
         return self.item_count
@@ -513,12 +802,13 @@ class StatusArrayOneReg:
 
         return data
 
+
 class ConfigArrayOneReg(StatusArrayOneReg):
-    def __init__(self, iface, addr, start_bit, width, item_count):
-        super().__init__(iface, addr, start_bit, width, item_count)
+    def __init__(self, iface, config, block):
+        super().__init__(iface, config, block)
 
     def write(self, data, offset=0):
-        """ offset - elements index offset, applied also when data is dictionary """
+        """offset - elements index offset, applied also when data is dictionary"""
         assert 0 <= len(data) <= self.item_count, f"invalid data len {len(data)}"
 
         val = 0
@@ -526,21 +816,25 @@ class ConfigArrayOneReg(StatusArrayOneReg):
 
         if type(data) == dict:
             for i, v in data.items():
-                assert type(i) == int, f'invalid index type {type(i)}'
+                assert type(i) == int, f"invalid index type {type(i)}"
                 assert i >= 0, f"negative index {i}"
                 assert i + offset < self.item_count, f"index overrange {i}"
-                assert 0 <= v < 2 ** self.width, f"data out of range, index {i}, value {v}"
+                assert (
+                    0 <= v < 2**self.width
+                ), f"data out of range, index {i}, value {v}"
                 shift = self.start_bit + (i + offset) * self.width
                 val |= v << shift
-                mask |= (2 ** self.width - 1) << shift
+                mask |= (2**self.width - 1) << shift
         else:
             assert len(data) + offset <= self.item_count
 
             for i, v in enumerate(data):
-                assert 0 <= v < 2 ** self.width, f"data out of range, index {i}, value {v}"
-                shift = (self.start_bit + (i + offset) * self.width)
+                assert (
+                    0 <= v < 2**self.width
+                ), f"data out of range, index {i}, value {v}"
+                shift = self.start_bit + (i + offset) * self.width
                 val |= v << shift
-                mask |= 2 ** self.width - 1  << shift
+                mask |= 2**self.width - 1 << shift
 
         if len(data) == self.item_count:
             self.iface.write(self.addr, val)
@@ -549,13 +843,15 @@ class ConfigArrayOneReg(StatusArrayOneReg):
 
 
 class StatusArrayOneInReg:
-    def __init__(self, iface, addr, mask, item_count):
+    def __init__(self, iface, status, block):
         self.iface = iface
-        self.addr = addr
-        self.mask = calc_mask(mask)
-        self.shift = mask[1]
-        self.width = mask[0] - mask[1] + 1
-        self.item_count = item_count
+
+        acs = status['Access']
+        self.addr = block['AddrSpace']['Start'] + acs['StartAddr']
+        self.mask = calc_mask((acs['EndBit'], acs['StartBit']))
+        self.shift = acs['StartBit']
+        self.item_count = acs['RegCount']
+        self.width = status['Width']
 
     def __len__(self):
         return self.item_count
@@ -574,14 +870,17 @@ class StatusArrayOneInReg:
         else:
             for i in idx:
                 assert 0 <= i < self.item_count
-            return [(self.iface.read(self.addr + i) >> self.shift) & self.mask for i in idx]
+            return [
+                (self.iface.read(self.addr + i) >> self.shift) & self.mask for i in idx
+            ]
+
 
 class ConfigArrayOneInReg(StatusArrayOneInReg):
-    def __init__(self, iface, addr, mask, item_count):
-        super().__init__(iface, addr, mask, item_count)
+    def __init__(self, iface, config, block):
+        super().__init__(iface, config, block)
 
     def write(self, data, offset=0):
-        """ offset - elements index offset, applied also when data is dictionary """
+        """offset - elements index offset, applied also when data is dictionary"""
         assert 0 <= len(data) <= self.item_count, f"invalid data len {len(data)}"
 
         if type(data) == dict:
@@ -601,14 +900,16 @@ class ConfigArrayOneInReg(StatusArrayOneInReg):
 
 
 class StatusArrayNInReg:
-    def __init__(self, iface, addr, start_bit, width, item_count, items_in_reg):
+    def __init__(self, iface, status, block):
         self.iface = iface
-        self.addr = addr
-        self.start_bit = start_bit
-        self.width = width
-        self.item_count = item_count
-        self.items_in_reg = items_in_reg
-        self.reg_count = math.ceil(item_count / self.items_in_reg)
+
+        acs = status['Access']
+        self.addr = block['AddrSpace']['Start'] + acs['StartAddr']
+        self.start_bit = acs['StartBit']
+        self.width = status['Width']
+        self.item_count = acs['ItemCount']
+        self.items_in_reg = acs['ItemsInReg']
+        self.reg_count = math.ceil(self.item_count / self.items_in_reg)
 
     def __len__(self):
         return self.item_count
@@ -630,7 +931,7 @@ class StatusArrayNInReg:
                 assert 0 <= i < self.item_count
                 reg_idx.add(i // self.items_in_reg)
 
-        reg_data = {reg_i : self.iface.read(self.addr + reg_i) for reg_i in reg_idx}
+        reg_data = {reg_i: self.iface.read(self.addr + reg_i) for reg_i in reg_idx}
 
         data = []
         for i in idx:
@@ -639,24 +940,26 @@ class StatusArrayNInReg:
 
         return data
 
+
 class ConfigArrayNInReg(StatusArrayNInReg):
-    def __init__(self, iface, addr, start_bit, width, item_count, items_in_reg):
-        super().__init__(iface, addr, start_bit, width, item_count, items_in_reg)
+    def __init__(self, iface, config, block):
+        super().__init__(iface, config, block)
 
     def write(self, data, offset=0):
-        """ offset - elements index offset, applied also when data is dictionary """
+        """offset - elements index offset, applied also when data is dictionary"""
         assert 0 <= len(data) <= self.item_count, f"invalid data len {len(data)}"
 
         regs = dict()
+
         def add_to_regs(idx, val):
             idx = idx + offset
             assert idx <= self.item_count, f"index overrange {idx + offset}"
             reg_idx = idx // self.items_in_reg
             if reg_idx not in regs:
-                regs[reg_idx] = [0, 0] # [value, mask]
+                regs[reg_idx] = [0, 0]  # [value, mask]
             shift = self.start_bit + (idx % self.items_in_reg) * self.width
             regs[reg_idx][0] |= val << shift
-            regs[reg_idx][1] |= (2 ** self.width - 1)  << shift
+            regs[reg_idx][1] |= (2**self.width - 1) << shift
 
         if type(data) == dict:
             for idx, val in data.items():
@@ -671,25 +974,39 @@ class ConfigArrayNInReg(StatusArrayNInReg):
 
 
 class StatusArrayNInRegMInEndReg(StatusArrayNInReg):
-    def __init__(self, iface, addr, start_bit, width, item_count, items_in_reg):
-        super().__init__(iface, addr, start_bit, width, item_count, items_in_reg)
+    def __init__(self, iface, status, block):
+        super().__init__(iface, status, block)
+
 
 class ConfigArrayNInRegMInEndReg(ConfigArrayNInReg):
-    def __init__(self, iface, addr, start_bit, width, item_count, items_in_reg):
-        super().__init__(iface, addr, start_bit, width, item_count, items_in_reg)
+    def __init__(self, iface, config, block):
+        super().__init__(iface, config, block)
 
 
 class StatusArrayOneInNRegs:
-    def __init__(self, iface, addr, width, item_count, regs_per_item, reg_count, end_bit):
+    def __init__(self, iface, status, block):
         self.iface = iface
 
-        self.addr = addr
-        self.width = width
-        self.item_count = item_count
+        acs = status['Access']
+        self.addr = acs['StartAddr']
+        self.item_count = acs['ItemCount']
+        self.width = status['Width']
 
-        self.regs_per_item = regs_per_item
-        self.reg_count = reg_count
-        self.last_reg_mask = calc_mask((end_bit, 0))
+        if acs['ItemWidth'] % block['Width'] == 0:
+            self.regs_per_item = acs['ItemWidth'] % block['Width']
+        else:
+            self.regs_per_item = int(acs['ItemWidth'] / block['Width']) + 1
+
+        self.reg_count = acs['ItemCount'] * self.regs_per_item
+
+        if acs['ItemWidth'] % block['Width'] == 0:
+            self.last_reg_mask = calc_mask((block['Width'] - 1, 0))
+        else:
+            self.last_reg_mask = calc_mask(
+                (acs['ItemWidth'] - (self.regs_per_item - 1) * block['Width'] - 1, 0)
+            )
+
+        self.block_width = block['Width']
 
     def __len__(self):
         return self.item_count
@@ -699,9 +1016,9 @@ class StatusArrayOneInNRegs:
         data = 0
         for i, bite in enumerate(buf):
             if i == len(buf) - 1:
-                data |= (bite & self.last_reg_mask) << (i * BUS_WIDTH)
+                data |= (bite & self.last_reg_mask) << (i * self.block_width)
             else:
-                data |= bite << (i * BUS_WIDTH)
+                data |= bite << (i * self.block_width)
         return data
 
     def read(self, idx=None):
@@ -709,28 +1026,36 @@ class StatusArrayOneInNRegs:
             buf = self.iface.readb(self.addr, self.reg_count)
             data = []
             for i in range(self.item_count):
-                data.append(self._regs_to_data(buf[i*self.regs_per_item:(i+1)*self.regs_per_item]))
+                data.append(
+                    self._regs_to_data(
+                        buf[i * self.regs_per_item : (i + 1) * self.regs_per_item]
+                    )
+                )
             return data
         elif type(idx) == int:
             assert 0 <= idx < self.item_count
-            buf = self.iface.readb(self.addr + idx * self.regs_per_item, self.regs_per_item)
+            buf = self.iface.readb(
+                self.addr + idx * self.regs_per_item, self.regs_per_item
+            )
             return self._regs_to_data(buf)
         else:
             data = []
             for i in idx:
                 assert 0 <= i < self.item_count
-                buf = self.iface.readb(self.addr + i * self.regs_per_item, self.regs_per_item)
+                buf = self.iface.readb(
+                    self.addr + i * self.regs_per_item, self.regs_per_item
+                )
                 data.append(self._regs_to_data(buf))
             return data
 
 
 class Upstream:
-    def __init__(self, iface, addr, delay, returns):
+    def __init__(self, iface, stream, block):
         self.iface = iface
-        self.addr = addr
-        self.delay = delay
+        self.addr = block['AddrSpace']['Start'] + access_start_addr(stream['Returns'][0]['Access'])
+        self.delay = calc_delay(stream['Delay'])
         self.buf_iface = _BufferIface()
-        self.buf_size, self.returns = create_mock_returns(self.buf_iface, addr, returns)
+        self.buf_size, self.returns = create_mock_returns(self.buf_iface, stream['Returns'], block)
 
     def read(self, n):
         """
@@ -746,31 +1071,35 @@ class Upstream:
         data = []
         for buf in read_data:
             self.buf_iface.set_buf(buf)
-            tup = [] # List to allow append but must be cast to tuple.
+            tup = []  # List to allow append but must be cast to tuple.
 
             for ret in self.returns:
                 # NOTE: Groups are not yet supported so it is safe to immediately append.
-                tup.append(ret['Status'].read())
+                tup.append(ret["Status"].read())
 
             data.append(tuple(tup))
 
         return tuple(data)
 
+
 class Downstream:
-    def __init__(self, iface, addr, delay, params):
+    def __init__(self, iface, stream, block):
         self.iface = iface
-        self.addr = addr
-        self.params = params
-        self.delay = delay
+        self.params = stream['Params']
+        self.addr = block['AddrSpace']['Start'] + access_start_addr(self.params[0]['Access'])
+        self.delay = calc_delay(stream['Delay'])
+        self.bus_width = block['Width']
 
     def write(self, data):
-        wbuf = [] # Write buffer
-        args_in_one_reg = False # All arguments occupy one register
+        wbuf = []  # Write buffer
+        args_in_one_reg = False  # All arguments occupy one register
 
         for args in data:
-            assert len(args) == len(self.params), f"invalid number of arguments {len(args)}, want {len(self.params)}"
+            assert len(args) == len(
+                self.params
+            ), f"invalid number of arguments {len(args)}, want {len(self.params)}"
 
-            buf = pack_params(self.params, *args)
+            buf = pack_params(self.bus_width, self.params, *args)
             if len(buf) == 1:
                 args_in_one_reg = True
                 wbuf.append(buf[0])
@@ -791,5 +1120,3 @@ class Downstream:
 
                 if i < len(wbuf) - 1:
                     time.sleep(self.delay)
-
-{{.Code}}

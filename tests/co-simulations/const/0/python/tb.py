@@ -7,25 +7,27 @@ import afbd
 
 WRITE_FIFO_PATH = sys.argv[1]
 READ_FIFO_PATH = sys.argv[2]
+REG_JSON = sys.argv[3]
+CONST_JSON = sys.argv[4]
 
 iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
 try:
-    Main = afbd.Main(iface)
+    Main, consts = afbd.generate(iface, REG_JSON, CONST_JSON)
 
 
     print("\n\nTesting int constant")
     print("Reading St register")
     read = Main.St.read()
     assert (
-        read == afbd.mainPkg.C
+        read == consts['main']['C']
     ), f"read value {read} differs from constant value {afbd.mainPkg.C}"
 
 
     print("\n\nTesting int list constants")
     print("Reading Stl register")
     read = Main.Stl.read()
-    for i, v in enumerate(afbd.mainPkg.CL):
+    for i, v in enumerate(consts['main']['CL']):
         assert (
             read[i] == v
         ), f"read value {read[i]} differs from constant value {v}"

@@ -7,13 +7,14 @@ import afbd
 
 WRITE_FIFO_PATH = sys.argv[1]
 READ_FIFO_PATH = sys.argv[2]
+REG_JSON = sys.argv[3]
 
 iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
 try:
-    Main = afbd.Main(iface)
+    Main, _ = afbd.generate(iface, REG_JSON)
 
-    max_val = 2 ** afbd.Main.WIDTH - 1
+    max_val = 2 ** Main.WIDTH - 1
 
     print("\nTesting Mask setting")
     Main.Mask.set()
