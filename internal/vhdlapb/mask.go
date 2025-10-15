@@ -3,7 +3,6 @@ package vhdlapb
 import (
 	"fmt"
 
-	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/access"
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/fn"
 )
 
@@ -30,10 +29,10 @@ func genMaskSingle(mask *fn.Mask, fmts *BlockEntityFormatters) {
 		mask.Name, mask.Width-1, dflt,
 	)
 
-	switch mask.Access.(type) {
-	case access.SingleOneReg:
+	switch mask.Access.Type {
+	case "SingleOneReg":
 		genMaskSingleOneReg(mask, fmts)
-	case access.SingleNRegs:
+	case "SingleNRegs":
 		genMaskSingleNRegs(mask, fmts)
 	default:
 		panic("unimplemented")
@@ -41,17 +40,17 @@ func genMaskSingle(mask *fn.Mask, fmts *BlockEntityFormatters) {
 }
 
 func genMaskSingleOneReg(mask *fn.Mask, fmts *BlockEntityFormatters) {
-	acs := mask.Access.(access.SingleOneReg)
+	acs := mask.Access
 
 	code := fmt.Sprintf(`
     if apb_req.write = '1' then
       %[1]s_o <= apb_req.wdata(%[2]d downto %[3]d);
     end if;
     apb_com.rdata(%[2]d downto %[3]d) <= %[1]s_o;`,
-		mask.Name, acs.EndBit(), acs.StartBit(),
+		mask.Name, acs.EndBit, acs.StartBit,
 	)
 
-	addr := acs.StartAddr()
+	addr := acs.StartAddr
 	fmts.RegistersAccess.add([2]int64{addr, addr}, code)
 }
 
@@ -64,9 +63,9 @@ func genMaskSingleNRegs(mask *fn.Mask, fmts *BlockEntityFormatters) {
 }
 
 func genMaskSingleNRegsAtomic(mask *fn.Mask, fmts *BlockEntityFormatters) {
-	acs := mask.Access.(access.SingleNRegs)
+	acs := mask.Access
 	strategy := SeparateLast
-	atomicShadowRange := [2]int64{mask.Width - 1 - acs.EndRegWidth(), 0}
+	atomicShadowRange := [2]int64{mask.Width - 1 - acs.EndRegWidth, 0}
 	chunks := makeAccessChunksContinuous(acs, strategy)
 
 	fmts.SignalDeclarations += fmt.Sprintf(
@@ -102,7 +101,7 @@ func genMaskSingleNRegsAtomic(mask *fn.Mask, fmts *BlockEntityFormatters) {
 }
 
 func genMaskSingleNRegsNonAtomic(mask *fn.Mask, fmts *BlockEntityFormatters) {
-	acs := mask.Access.(access.SingleNRegs)
+	acs := mask.Access
 	chunks := makeAccessChunksContinuous(acs, Compact)
 
 	for _, c := range chunks {

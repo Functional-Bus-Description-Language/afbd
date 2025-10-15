@@ -21,94 +21,94 @@ type accessChunk struct {
 	endBit   int64
 }
 
-func makeAccessChunksContinuous(a access.SingleNRegs, strategy chunkStrategy) []accessChunk {
-	startBit := a.StartBit()
-	endBit := a.EndBit()
+func makeAccessChunksContinuous(acs access.Access, strategy chunkStrategy) []accessChunk {
+	startBit := acs.StartBit
+	endBit := acs.EndBit
 
 	cs := []accessChunk{}
 
-	if strategy == Compact && a.StartRegWidth() == busWidth && a.EndRegWidth() == busWidth {
+	if strategy == Compact && acs.StartRegWidth == busWidth && acs.EndRegWidth == busWidth {
 		cs = append(cs, accessChunk{
-			addr: [2]int64{a.StartAddr(), a.EndAddr()},
+			addr: [2]int64{acs.StartAddr, acs.EndAddr},
 			range_: [2]string{
-				fmt.Sprintf("%d * (addr - %d + 1) - 1", busWidth, a.StartAddr()),
-				fmt.Sprintf("%d * (addr - %d)", busWidth, a.StartAddr()),
+				fmt.Sprintf("%d * (addr - %d + 1) - 1", busWidth, acs.StartAddr),
+				fmt.Sprintf("%d * (addr - %d)", busWidth, acs.StartAddr),
 			},
 			startBit: 0,
 			endBit:   busWidth - 1,
 		})
-	} else if a.RegCount() == 2 {
+	} else if acs.RegCount == 2 {
 		cs = append(cs, accessChunk{
-			addr:     [2]int64{a.StartAddr(), a.StartAddr()},
-			range_:   [2]string{fmt.Sprintf("%d", a.StartRegWidth()-1), "0"},
+			addr:     [2]int64{acs.StartAddr, acs.StartAddr},
+			range_:   [2]string{fmt.Sprintf("%d", acs.StartRegWidth-1), "0"},
 			startBit: startBit,
 			endBit:   busWidth - 1,
 		})
 		cs = append(cs, accessChunk{
-			addr: [2]int64{a.EndAddr(), a.EndAddr()},
+			addr: [2]int64{acs.EndAddr, acs.EndAddr},
 			range_: [2]string{
-				fmt.Sprintf("%d", a.Width()-1),
-				fmt.Sprintf("%d", a.Width()-a.EndRegWidth()),
+				fmt.Sprintf("%d", acs.ItemWidth-1),
+				fmt.Sprintf("%d", acs.ItemWidth-acs.EndRegWidth),
 			},
 			startBit: 0,
 			endBit:   endBit,
 		})
-	} else if strategy == SeparateLast && a.StartRegWidth() == busWidth {
+	} else if strategy == SeparateLast && acs.StartRegWidth == busWidth {
 		cs = append(cs, accessChunk{
-			addr: [2]int64{a.StartAddr(), a.EndAddr() - 1},
+			addr: [2]int64{acs.StartAddr, acs.EndAddr - 1},
 			range_: [2]string{
-				fmt.Sprintf("%d * (addr - %d + 1) - 1", busWidth, a.StartAddr()),
-				fmt.Sprintf("%d * (addr - %d)", busWidth, a.StartAddr()),
+				fmt.Sprintf("%d * (addr - %d + 1) - 1", busWidth, acs.StartAddr),
+				fmt.Sprintf("%d * (addr - %d)", busWidth, acs.StartAddr),
 			},
 			startBit: 0,
 			endBit:   busWidth - 1,
 		})
 		cs = append(cs, accessChunk{
-			addr: [2]int64{a.EndAddr(), a.EndAddr()},
+			addr: [2]int64{acs.EndAddr, acs.EndAddr},
 			range_: [2]string{
-				fmt.Sprintf("%d", a.Width()-1),
-				fmt.Sprintf("%d", a.Width()-a.EndRegWidth()),
+				fmt.Sprintf("%d", acs.ItemWidth-1),
+				fmt.Sprintf("%d", acs.ItemWidth-acs.EndRegWidth),
 			},
 			startBit: 0,
 			endBit:   endBit,
 		})
-	} else if strategy == SeparateFirst && a.EndRegWidth() == busWidth {
+	} else if strategy == SeparateFirst && acs.EndRegWidth == busWidth {
 		cs = append(cs, accessChunk{
-			addr:     [2]int64{a.StartAddr(), a.StartAddr()},
-			range_:   [2]string{fmt.Sprintf("%d", a.StartRegWidth()-1), "0"},
+			addr:     [2]int64{acs.StartAddr, acs.StartAddr},
+			range_:   [2]string{fmt.Sprintf("%d", acs.StartRegWidth-1), "0"},
 			startBit: startBit,
 			endBit:   busWidth - 1,
 		})
 		cs = append(cs, accessChunk{
-			addr: [2]int64{a.StartAddr() + 1, a.EndAddr()},
+			addr: [2]int64{acs.StartAddr + 1, acs.EndAddr},
 			range_: [2]string{
-				fmt.Sprintf("%d * (addr - %d + 1) + %d", busWidth, a.StartAddr(), a.StartRegWidth()-1),
-				fmt.Sprintf("%d * (addr - %d) + %d", busWidth, a.StartAddr(), a.StartRegWidth()),
+				fmt.Sprintf("%d * (addr - %d + 1) + %d", busWidth, acs.StartAddr, acs.StartRegWidth-1),
+				fmt.Sprintf("%d * (addr - %d) + %d", busWidth, acs.StartAddr, acs.StartRegWidth),
 			},
 			startBit: 0,
 			endBit:   busWidth - 1,
 		})
 	} else {
 		cs = append(cs, accessChunk{
-			addr:     [2]int64{a.StartAddr(), a.StartAddr()},
-			range_:   [2]string{fmt.Sprintf("%d", a.StartRegWidth()-1), "0"},
+			addr:     [2]int64{acs.StartAddr, acs.StartAddr},
+			range_:   [2]string{fmt.Sprintf("%d", acs.StartRegWidth-1), "0"},
 			startBit: startBit,
 			endBit:   busWidth - 1,
 		})
 		cs = append(cs, accessChunk{
-			addr: [2]int64{a.StartAddr() + 1, a.EndAddr() - 1},
+			addr: [2]int64{acs.StartAddr + 1, acs.EndAddr - 1},
 			range_: [2]string{
-				fmt.Sprintf("%d * (addr - %d) + %d", busWidth, a.StartAddr(), a.StartRegWidth()-1),
-				fmt.Sprintf("%d * (addr - %d) + %d", busWidth, a.StartAddr()+1, a.StartRegWidth()),
+				fmt.Sprintf("%d * (addr - %d) + %d", busWidth, acs.StartAddr, acs.StartRegWidth-1),
+				fmt.Sprintf("%d * (addr - %d) + %d", busWidth, acs.StartAddr+1, acs.StartRegWidth),
 			},
 			startBit: 0,
 			endBit:   busWidth - 1,
 		})
 		cs = append(cs, accessChunk{
-			addr: [2]int64{a.EndAddr(), a.EndAddr()},
+			addr: [2]int64{acs.EndAddr, acs.EndAddr},
 			range_: [2]string{
-				fmt.Sprintf("%d", a.Width()-1),
-				fmt.Sprintf("%d", a.Width()-a.EndRegWidth()),
+				fmt.Sprintf("%d", acs.ItemWidth-1),
+				fmt.Sprintf("%d", acs.ItemWidth-acs.EndRegWidth),
 			},
 			startBit: 0,
 			endBit:   endBit,

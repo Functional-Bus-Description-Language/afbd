@@ -5,7 +5,6 @@ import (
 
 	"github.com/Functional-Bus-Description-Language/afbd/internal/c"
 	"github.com/Functional-Bus-Description-Language/afbd/internal/utils"
-	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/access"
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/fn"
 )
 
@@ -18,8 +17,8 @@ func genStatus(st *fn.Status, blk *fn.Block, hFmts *BlockHFormatters, cFmts *Blo
 }
 
 func genStatusSingle(st *fn.Status, blk *fn.Block, hFmts *BlockHFormatters, cFmts *BlockCFormatters) {
-	switch st.Access.(type) {
-	case access.SingleOneReg:
+	switch st.Access.Type {
+	case "SingleOneReg":
 		genStatusSingleOneReg(st, blk, hFmts, cFmts)
 	default:
 		panic("unimplemented")
@@ -35,12 +34,12 @@ func genStatusSingleOneReg(st *fn.Status, blk *fn.Block, hFmts *BlockHFormatters
 
 	hFmts.Code += fmt.Sprintf("\n%s;\n", signature)
 
-	acs := st.Access.(access.SingleOneReg)
+	acs := st.Access
 	cFmts.Code += fmt.Sprintf("\n%s {\n", signature)
 	if readType.Typ() != "ByteArray" && typ.Typ() != "ByteArray" {
 		if busWidth == st.Width {
 			cFmts.Code += fmt.Sprintf(
-				"\treturn iface->read(%d, data);\n};\n", blk.StartAddr()+acs.StartAddr(),
+				"\treturn iface->read(%d, data);\n};\n", blk.StartAddr()+acs.StartAddr,
 			)
 		} else {
 			cFmts.Code += fmt.Sprintf(`	%s aux;
@@ -50,7 +49,7 @@ func genStatusSingleOneReg(st *fn.Status, blk *fn.Block, hFmts *BlockHFormatters
 	*data = (aux >> %d) & 0x%x;
 	return 0;
 };
-`, readType.Depointer().String(), blk.StartAddr()+acs.StartAddr(), acs.StartBit(), utils.Uint64Mask(acs.StartBit(), acs.EndBit()),
+`, readType.Depointer().String(), blk.StartAddr()+acs.StartAddr, acs.StartBit, utils.Uint64Mask(acs.StartBit, acs.EndBit),
 			)
 		}
 	} else {

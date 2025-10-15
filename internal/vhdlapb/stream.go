@@ -3,7 +3,6 @@ package vhdlapb
 import (
 	"fmt"
 
-	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/access"
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/fn"
 )
 
@@ -68,16 +67,16 @@ func genStreamPorts(stream *fn.Stream, fmts *BlockEntityFormatters) {
 
 func genUpstreamAccess(stream *fn.Stream, fmts *BlockEntityFormatters) {
 	for _, r := range stream.Returns {
-		switch acs := r.Access.(type) {
-		case access.SingleOneReg:
-			addr := [2]int64{acs.StartAddr(), acs.StartAddr()}
+		switch acs := r.Access; acs.Type {
+		case "SingleOneReg":
+			addr := [2]int64{acs.StartAddr, acs.StartAddr}
 			code := fmt.Sprintf(
 				"    apb_com.rdata(%d downto %d) <= %s_i.%s;\n",
-				acs.EndBit(), acs.StartBit(), stream.Name, r.Name,
+				acs.EndBit, acs.StartBit, stream.Name, r.Name,
 			)
 
 			fmts.RegistersAccess.add(addr, code)
-		case access.SingleNRegs:
+		case "SingleNRegs":
 			chunks := makeAccessChunksContinuous(acs, Compact)
 
 			for _, c := range chunks {
@@ -96,19 +95,19 @@ func genUpstreamAccess(stream *fn.Stream, fmts *BlockEntityFormatters) {
 
 func genDownstreamAccess(stream *fn.Stream, fmts *BlockEntityFormatters) {
 	for _, p := range stream.Params {
-		switch acs := p.Access.(type) {
-		case access.SingleOneReg:
-			addr := [2]int64{acs.StartAddr(), acs.StartAddr()}
+		switch acs := p.Access; acs.Type {
+		case "SingleOneReg":
+			addr := [2]int64{acs.StartAddr, acs.StartAddr}
 			code := fmt.Sprintf(`
     if apb_req.write = '1' then
       %s_o.%s <= apb_req.wdata(%d downto %d);
     end if;
 `,
-				stream.Name, p.Name, acs.EndBit(), acs.StartBit(),
+				stream.Name, p.Name, acs.EndBit, acs.StartBit,
 			)
 
 			fmts.RegistersAccess.add(addr, code)
-		case access.SingleNRegs:
+		case "SingleNRegs":
 			chunks := makeAccessChunksContinuous(acs, Compact)
 
 			for _, c := range chunks {

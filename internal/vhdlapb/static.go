@@ -3,7 +3,6 @@ package vhdlapb
 import (
 	"fmt"
 
-	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/access"
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/fn"
 )
 
@@ -21,8 +20,8 @@ func genStaticSingle(st *fn.Static, fmts *BlockEntityFormatters) {
 		st.Name, st.Width-1, string(st.InitValue),
 	)
 
-	switch st.Access.(type) {
-	case access.SingleOneReg:
+	switch st.Access.Type {
+	case "SingleOneReg":
 		genStaticSingleOneReg(st, fmts)
 	default:
 		panic("unimplemented")
@@ -30,12 +29,12 @@ func genStaticSingle(st *fn.Static, fmts *BlockEntityFormatters) {
 }
 
 func genStaticSingleOneReg(st *fn.Static, fmts *BlockEntityFormatters) {
-	acs := st.Access.(access.SingleOneReg)
+	acs := st.Access
 
 	code := fmt.Sprintf(
 		"    apb_com.rdata(%d downto %d) <= %s; -- %s\n",
-		acs.EndBit(), acs.StartBit(), string(st.InitValue), st.Name,
+		acs.EndBit, acs.StartBit, string(st.InitValue), st.Name,
 	)
-	addr := acs.StartAddr()
+	addr := acs.StartAddr
 	fmts.RegistersAccess.add([2]int64{addr, addr}, code)
 }

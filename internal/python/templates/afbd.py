@@ -219,27 +219,6 @@ def calc_numeric_value(v):
         v = "0" + v
     return int(v, 0) # base=0, let Python detect the prefix automatically
 
-def access_start_addr(acs):
-    """Return access start address based on access dictionary."""
-    if 'StartAddr' in acs:
-        return acs['StartAddr']
-    return acs['Addr']
-
-
-def access_reg_count(acs, bus_width):
-    """Return access register count based on access dictionary."""
-    if 'RegCount' in acs:
-        return acs['RegCount']
-    elif acs['Type'] == 'ArrayOneInNRegs':
-        regs_per_item = int(acs['ItemWidth'] / bus_width)
-        if acs['ItemWidth'] % bus_width != 0:
-            regs_per_item += 1
-
-        return acs['ItemCount'] * regs_per_item
-
-    return 1
-
-
 class _BufferIface:
     """
     _BufferIface is the internal interface used for reading/writing internal buffer
@@ -286,7 +265,7 @@ def check_arg_values(params, *args):
             raise Exception("invalid param access type {}".format(type))
 
 
-def pack_params(bus_width, params, *args):
+def pack_params(params, *args):
     check_arg_values(params, *args)
 
     buf = []
@@ -298,24 +277,24 @@ def pack_params(bus_width, params, *args):
         acs = param['Access']
 
         if addr is None:
-            addr = access_start_addr(acs)
-        elif access_start_addr(acs) > addr:
+            addr = acs['StartAddr']
+        elif acs['StartAddr'] > addr:
             buf.append(data)
             data = 0
-            addr = access_start_addr(acs)
+            addr = acs['StartAddr']
 
         if acs['Type'] == 'SingleOneReg':
             data |= arg << acs['StartBit']
         elif acs['Type'] == 'SingleNRegs':
             for r in range(acs['RegCount']):
                 if r == 0:
-                    data |= (arg & calc_mask((bus_width - 1, acs['StartBit']))) << acs['StartBit']
+                    data |= (arg & calc_mask((acs['RegWidth'] - 1, acs['StartBit']))) << acs['StartBit']
                     buf.append(data)
-                    arg = arg >> (bus_width - acs['StartBit'])
+                    arg = arg >> (acs['RegWidth'] - acs['StartBit'])
                 else:
                     addr += 1
-                    data = arg & calc_mask((bus_width, 0))
-                    arg = arg >> bus_width
+                    data = arg & calc_mask((acs['RegWidth'], 0))
+                    arg = arg >> acs['RegWidth']
                     if r < acs['RegCount'] - 1:
                         buf.append(data)
                         data = 0
@@ -325,19 +304,19 @@ def pack_params(bus_width, params, *args):
                 width = param['Width']
                 # Number of registers ith argument from vector occupies.
                 reg_count = (
-                    int(math.ceil((width - (bus_width - start_bit)) / bus_width)) + 1
+                    int(math.ceil((width - (acs['RegWidth'] - start_bit)) / acs['RegWidth'])) + 1
                 )
                 for _ in range(reg_count):
                     reg_width = width
-                    if reg_width > bus_width - start_bit:
-                        reg_width = bus_width - start_bit
+                    if reg_width > acs['RegWidth'] - start_bit:
+                        reg_width = acs['RegWidth'] - start_bit
                     data |= (v & ((1 << reg_width) - 1)) << start_bit
                     v >>= reg_width
                     start_bit = start_bit + reg_width
-                    if start_bit >= bus_width:
+                    if start_bit >= acs['RegWidth']:
                         buf.append(data)
                         data = 0
-                        start_bit %= bus_width
+                        start_bit %= acs['RegWidth']
                     width -= reg_width
         else:
             raise Exception(f"unhandled access type '{acs['Type']}'")
@@ -353,14 +332,14 @@ def create_mock_returns(buf_iface, returns, block):
     It is useful to be used with returns proc or with upstram.
     """
     buf_block = {
-        'AddrSpace': {'Start': 0 - access_start_addr(returns[0]['Access'])},
+        'AddrSpace': {'Start': 0 - returns[0]['Access']['StartAddr']},
         'Width': block['Width']
     }
     buf_size = 0
     rets = []
     for ret in returns:
         acs = ret['Access']
-        buf_size += access_reg_count(acs, block['Width']) # TODO: Is it ok? What if multiple returns are placed in the same register?
+        buf_size += acs['RegCount'] # TODO: Is it ok? What if multiple returns are placed in the same register?
         r = {}
         r['Name'] = ret['Name']
         # TODO: Add support for groups.
@@ -401,14 +380,10 @@ class ParamsProc:
     def __init__(self, iface, proc, block):
         self.iface = iface
         self.params = proc['Params']
-        self.params_start_addr = block['AddrSpace']['Start'] + access_start_addr(
-            self.params[0]['Access']
-        )
+        self.params_start_addr = block['AddrSpace']['Start'] + self.params[0]['Access']['StartAddr']
         self.delay = calc_delay(proc['Delay'])
         if self.delay is not None:
             self.exit_addr = block['AddrSpace']['Start'] + proc['ExitAddr']
-
-        self.block_width = block['Width']
 
     def __call__(self, *args):
         assert len(args) == len(
@@ -417,7 +392,7 @@ class ParamsProc:
             self.__name__, len(self.params), len(args)
         )
 
-        buf = pack_params(self.block_width, self.params, *args)
+        buf = pack_params(self.params, *args)
 
         if len(buf) == 1:
             self.iface.write(self.params_start_addr, buf[0])
@@ -528,7 +503,7 @@ class StatusSingleOneReg:
         self.iface = iface
 
         acs = status['Access']
-        self.addr = block['AddrSpace']['Start'] + acs['Addr']
+        self.addr = block['AddrSpace']['Start'] + acs['StartAddr']
         self.start_bit = acs['StartBit']
         self.mask = calc_mask((acs['EndBit'], acs['StartBit']))
         self.width = acs['EndBit'] - acs['StartBit'] + 1
@@ -773,7 +748,7 @@ class StatusArrayOneReg:
         self.iface = iface
 
         acs = status['Access']
-        self.addr = block['AddrSpace']['Start'] + acs['Addr']
+        self.addr = block['AddrSpace']['Start'] + acs['StartAddr']
         self.start_bit = acs['StartBit']
         self.item_count = acs['ItemCount']
         self.width = status['Width']
@@ -906,10 +881,10 @@ class StatusArrayNInReg:
         acs = status['Access']
         self.addr = block['AddrSpace']['Start'] + acs['StartAddr']
         self.start_bit = acs['StartBit']
-        self.width = status['Width']
+        self.width = acs['ItemWidth']
         self.item_count = acs['ItemCount']
-        self.items_in_reg = acs['ItemsInReg']
-        self.reg_count = math.ceil(self.item_count / self.items_in_reg)
+        self.items_in_reg = int(acs['RegWidth'] / acs['ItemWidth'])
+        self.reg_count = acs['RegCount']
 
     def __len__(self):
         return self.item_count
@@ -990,14 +965,13 @@ class StatusArrayOneInNRegs:
         acs = status['Access']
         self.addr = acs['StartAddr']
         self.item_count = acs['ItemCount']
-        self.width = status['Width']
+        self.width = acs['ItemWidth']
+        self.reg_count = acs['RegCount']
 
         if acs['ItemWidth'] % block['Width'] == 0:
             self.regs_per_item = acs['ItemWidth'] % block['Width']
         else:
             self.regs_per_item = int(acs['ItemWidth'] / block['Width']) + 1
-
-        self.reg_count = acs['ItemCount'] * self.regs_per_item
 
         if acs['ItemWidth'] % block['Width'] == 0:
             self.last_reg_mask = calc_mask((block['Width'] - 1, 0))
@@ -1052,7 +1026,7 @@ class StatusArrayOneInNRegs:
 class Upstream:
     def __init__(self, iface, stream, block):
         self.iface = iface
-        self.addr = block['AddrSpace']['Start'] + access_start_addr(stream['Returns'][0]['Access'])
+        self.addr = block['AddrSpace']['Start'] + stream['Returns'][0]['Access']['StartAddr']
         self.delay = calc_delay(stream['Delay'])
         self.buf_iface = _BufferIface()
         self.buf_size, self.returns = create_mock_returns(self.buf_iface, stream['Returns'], block)
@@ -1086,9 +1060,8 @@ class Downstream:
     def __init__(self, iface, stream, block):
         self.iface = iface
         self.params = stream['Params']
-        self.addr = block['AddrSpace']['Start'] + access_start_addr(self.params[0]['Access'])
+        self.addr = block['AddrSpace']['Start'] + self.params[0]['Access']['StartAddr']
         self.delay = calc_delay(stream['Delay'])
-        self.bus_width = block['Width']
 
     def write(self, data):
         wbuf = []  # Write buffer
@@ -1099,7 +1072,7 @@ class Downstream:
                 self.params
             ), f"invalid number of arguments {len(args)}, want {len(self.params)}"
 
-            buf = pack_params(self.bus_width, self.params, *args)
+            buf = pack_params(self.params, *args)
             if len(buf) == 1:
                 args_in_one_reg = True
                 wbuf.append(buf[0])

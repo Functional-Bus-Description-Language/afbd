@@ -5,7 +5,6 @@ import (
 
 	"github.com/Functional-Bus-Description-Language/afbd/internal/c"
 	"github.com/Functional-Bus-Description-Language/afbd/internal/utils"
-	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/access"
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/fn"
 )
 
@@ -18,8 +17,8 @@ func genConfig(cfg *fn.Config, blk *fn.Block, hFmts *BlockHFormatters, cFmts *Bl
 }
 
 func genConfigSingle(cfg *fn.Config, blk *fn.Block, hFmts *BlockHFormatters, cFmts *BlockCFormatters) {
-	switch cfg.Access.(type) {
-	case access.SingleOneReg:
+	switch cfg.Access.Type {
+	case "SingleOneReg":
 		genConfigSingleOneReg(cfg, blk, hFmts, cFmts)
 	default:
 		panic("unimplemented")
@@ -41,12 +40,12 @@ func genConfigSingleOneReg(cfg *fn.Config, blk *fn.Block, hFmts *BlockHFormatter
 
 	hFmts.Code += fmt.Sprintf("\n%s;\n%s;\n", readSignature, writeSignature)
 
-	acs := cfg.Access.(access.SingleOneReg)
+	acs := cfg.Access
 	cFmts.Code += fmt.Sprintf("\n%s {\n", readSignature)
 	if readType.Typ() != "ByteArray" && rType.Typ() != "ByteArray" {
 		if busWidth == cfg.Width {
 			cFmts.Code += fmt.Sprintf(
-				"\treturn iface->read(%d, data);\n};\n", blk.StartAddr()+acs.StartAddr(),
+				"\treturn iface->read(%d, data);\n};\n", blk.StartAddr()+acs.StartAddr,
 			)
 		} else {
 			cFmts.Code += fmt.Sprintf(`	%s aux;
@@ -56,7 +55,7 @@ func genConfigSingleOneReg(cfg *fn.Config, blk *fn.Block, hFmts *BlockHFormatter
 	*data = (aux >> %d) & 0x%x;
 	return 0;
 };
-`, readType.Depointer().String(), blk.StartAddr()+acs.StartAddr(), acs.StartBit(), utils.Uint64Mask(acs.StartBit(), acs.EndBit()),
+`, readType.Depointer().String(), blk.StartAddr()+acs.StartAddr, acs.StartBit, utils.Uint64Mask(acs.StartBit, acs.EndBit),
 			)
 		}
 	} else {
@@ -67,11 +66,11 @@ func genConfigSingleOneReg(cfg *fn.Config, blk *fn.Block, hFmts *BlockHFormatter
 	if readType.Typ() != "ByteArray" && rType.Typ() != "ByteArray" {
 		if busWidth == cfg.Width {
 			cFmts.Code += fmt.Sprintf(
-				"\treturn iface->write(%d, data);\n};\n", blk.StartAddr()+acs.StartAddr(),
+				"\treturn iface->write(%d, data);\n};\n", blk.StartAddr()+acs.StartAddr,
 			)
 		} else {
 			cFmts.Code += fmt.Sprintf(
-				"	return iface->write(%d, (data << %d));\n };", blk.StartAddr()+acs.StartAddr(), acs.StartBit(),
+				"	return iface->write(%d, (data << %d));\n };", blk.StartAddr()+acs.StartAddr, acs.StartBit,
 			)
 		}
 	} else {

@@ -5,7 +5,6 @@ import (
 
 	"github.com/Functional-Bus-Description-Language/afbd/internal/c"
 	_ "github.com/Functional-Bus-Description-Language/afbd/internal/utils"
-	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/access"
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/fn"
 	"strings"
 )
@@ -75,9 +74,9 @@ func genProcParamsAccessSingleWriteNoDelayNoReturns(p *fn.Proc, blk *fn.Block, c
 			cFmts.Code += " | "
 		}
 
-		switch acs := p.Access.(type) {
-		case access.SingleOneReg:
-			cFmts.Code += fmt.Sprintf("%s << %d", p.Name, acs.StartBit())
+		switch acs := p.Access; acs.Type {
+		case "SingleOneReg":
+			cFmts.Code += fmt.Sprintf("%s << %d", p.Name, acs.StartBit)
 		default:
 			panic("unimplemented")
 		}
@@ -97,11 +96,11 @@ func genProcParamsAccessBlockWriteNoDelayNoReturns(proc *fn.Proc, blk *fn.Block,
 	cFmts.Code += fmt.Sprintf("\t%s buf[%d] = {0};\n\n", c.WidthToWriteType(blk.Width), proc.ParamsBufSize())
 
 	for _, p := range proc.Params {
-		switch acs := p.Access.(type) {
-		case access.SingleOneReg:
+		switch acs := p.Access; acs.Type {
+		case "SingleOneReg":
 			cFmts.Code += fmt.Sprintf(
 				"\tbuf[%d] |= %s << %d;\n",
-				acs.StartAddr()-proc.ParamsStartAddr(), p.Name, acs.StartBit(),
+				acs.StartAddr-proc.ParamsStartAddr(), p.Name, acs.StartBit,
 			)
 		default:
 			panic("unimplemented")
@@ -129,11 +128,11 @@ func genProcReturnsAccessSingleRead(p *fn.Proc, blk *fn.Block, cFmts *BlockCForm
 	cFmts.Code += "\tif (err)\n\t\t return err;\n"
 
 	for _, r := range p.Returns {
-		switch acs := r.Access.(type) {
-		case access.SingleOneReg:
+		switch acs := r.Access; acs.Type {
+		case "SingleOneReg":
 			cFmts.Code += fmt.Sprintf(
 				"\t*%s = (_rdata >> %d) & 0x%X;\n",
-				r.Name, acs.StartBit(), c.MaskToValue(acs.StartBit(), acs.EndBit()),
+				r.Name, acs.StartBit, c.MaskToValue(acs.StartBit, acs.EndBit),
 			)
 		default:
 			panic("unimplemented")
