@@ -19,10 +19,7 @@ var busWidth int64
 var pythonTmplStr string
 var pythonTmpl = template.Must(template.New("Python module").Parse(pythonTmplStr))
 
-type pythonFormatters struct {
-	BusWidth int64
-	Code     string
-}
+type pythonFormatters struct {}
 
 func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package) {
 	busWidth = bus.Width
@@ -32,19 +29,12 @@ func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package) {
 		log.Fatalf("generate Python: %v", err)
 	}
 
-	code := genBlock(bus, true)
-
-	code += genPkgConsts(pkgsConsts)
-
 	f, err := os.Create(path.Join(args.Python.Path, "afbd.py"))
 	if err != nil {
 		log.Fatalf("generate Python: %v", err)
 	}
 
-	fmts := pythonFormatters{
-		BusWidth: busWidth,
-		Code:     code,
-	}
+	fmts := pythonFormatters{}
 
 	err = pythonTmpl.Execute(f, fmts)
 	if err != nil {
