@@ -115,7 +115,7 @@ func genConfigSingleNRegsAtomic(blk *fn.Block, cfg *fn.Config, fmts *BlockEntity
 			)
 		}
 
-		fmts.RegistersAccess.add(addrRange(c.addr[0], c.addr[1], blk), code)
+		fmts.RegistersAccess.add(c.addr.Shift(-blk.StartAddr()), code)
 	}
 }
 
@@ -132,7 +132,7 @@ func genConfigSingleNRegsNonAtomic(blk *fn.Block, cfg *fn.Config, fmts *BlockEnt
 			cfg.Name, c.range_[0], c.range_[1], c.endBit, c.startBit,
 		)
 
-		fmts.RegistersAccess.add(addrRange(c.addr[0], c.addr[1], blk), code)
+		fmts.RegistersAccess.add(c.addr.Shift(-blk.StartAddr()), code)
 	}
 }
 

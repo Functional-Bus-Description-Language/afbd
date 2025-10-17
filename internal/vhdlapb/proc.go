@@ -121,7 +121,7 @@ func genProcParamAccessSingleNRegs(blk *fn.Block, proc *fn.Proc, param *fn.Param
     apb_com.rdata(%[5]d downto %[6]d) <= %[1]s_o.%[2]s(%[3]s downto %[4]s);`,
 			proc.Name, param.Name, c.range_[0], c.range_[1], c.endBit, c.startBit,
 		)
-		fmts.RegistersAccess.add(addrRange(c.addr[0], c.addr[1], blk), code)
+		fmts.RegistersAccess.add(c.addr.Shift(-blk.StartAddr()), code)
 	}
 }
 

@@ -95,7 +95,7 @@ func genMaskSingleNRegsAtomic(blk *fn.Block, mask *fn.Mask, fmts *BlockEntityFor
 			)
 		}
 
-		fmts.RegistersAccess.add(addrRange(c.addr[0], c.addr[1], blk), code)
+		fmts.RegistersAccess.add(c.addr.Shift(-blk.StartAddr()), code)
 	}
 }
 
@@ -112,6 +112,6 @@ func genMaskSingleNRegsNonAtomic(blk *fn.Block, mask *fn.Mask, fmts *BlockEntity
 			mask.Name, c.range_[0], c.range_[1], c.endBit, c.startBit,
 		)
 
-		fmts.RegistersAccess.add(addrRange(c.addr[0], c.addr[1], blk), code)
+		fmts.RegistersAccess.add(c.addr.Shift(-blk.StartAddr()), code)
 	}
 }

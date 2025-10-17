@@ -97,7 +97,7 @@ func genStatusSingleNRegsAtomic(blk *fn.Block, st *fn.Status, fmts *BlockEntityF
 			)
 		}
 
-		fmts.RegistersAccess.add(addrRange(c.addr[0], c.addr[1], blk), code)
+		fmts.RegistersAccess.add(c.addr.Shift(-blk.StartAddr()), code)
 	}
 }
 
@@ -110,7 +110,7 @@ func genStatusSingleNRegsNonAtomic(blk *fn.Block, st *fn.Status, fmts *BlockEnti
 			c.endBit, c.startBit, st.Name, c.range_[0], c.range_[1],
 		)
 
-		fmts.RegistersAccess.add(addrRange(c.addr[0], c.addr[1], blk), code)
+		fmts.RegistersAccess.add(c.addr.Shift(-blk.StartAddr()), code)
 	}
 }
 
