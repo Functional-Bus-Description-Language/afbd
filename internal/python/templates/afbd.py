@@ -57,131 +57,142 @@ def gen_consts(consts):
     return cs
 
 
+def gen_configs(iface, blk):
+    cfgs = dict()
+    for cfg in blk["Configs"] or []:
+        cfgs[cfg['Name']] = gen_config(iface, cfg, blk['AddrSpace']['Start'])
+    return cfgs
+
+
+def gen_config(iface, cfg, blk_addr):
+    typ = cfg['Access']['Type']
+    if typ == 'SingleOneReg':
+        return ConfigSingleOneReg(iface, cfg, blk_addr)
+    elif typ == 'SingleNRegs':
+        return ConfigSingleNRegs(iface, cfg, blk_addr)
+    elif typ == 'ArrayOneInReg':
+        return ConfigArrayOneInReg(iface, cfg, blk_addr)
+    elif typ == 'ArrayOneReg':
+        return ConfigArrayOneReg(iface, cfg, blk_addr)
+    elif typ == 'ArrayNInReg':
+        return ConfigArrayNInReg(iface, cfg, blk_addr)
+    elif typ == 'ArrayNInRegMInEndReg':
+        return ConfigArrayNInRegMInEndReg(iface, cfg, blk_addr)
+    else:
+        raise Exception(f"unimplemented for access type '{typ}'")
+
+
+def gen_masks(iface, blk):
+    masks = dict()
+    for mask in blk["Masks"] or []:
+        masks[mask['Name']] = gen_mask(iface, mask, blk['AddrSpace']['Start'])
+    return masks
+
+
+def gen_mask(iface, mask, blk_addr):
+    typ = mask['Access']['Type']
+    if typ == 'SingleOneReg':
+        return MaskSingleOneReg(iface, mask, blk_addr)
+    elif typ == 'SingleNRegs':
+        return MaskSingleNRegs(iface, mask, blk_addr)
+    else:
+        raise Exception(f"unimplemented for access type '{typ}'")
+
+
+def gen_procs(iface, blk):
+    procs = dict()
+    for proc in blk["Procs"] or []:
+        procs[proc['Name']] = gen_proc(iface, proc, blk['AddrSpace']['Start'])
+    return procs
+
+
+def gen_proc(iface, proc, blk_addr):
+    lp = 0 if proc['Params'] is None else len(proc['Params'])
+    lr = 0 if proc['Returns'] is None else len(proc['Returns'])
+    if lp == 0 and lr == 0:
+        return EmptyProc(iface, proc, blk_addr)
+    elif lp > 0 and lr == 0:
+        return ParamsProc(iface, proc, blk_addr)
+    elif lp == 0 and lr > 0:
+        return ReturnsProc(iface, proc, blk_addr)
+    else:
+        return ParamsAndReturnsProc(iface, proc, blk_addr)
+
+
+def gen_statics(iface, blk):
+    sts = dict()
+    for st in blk["Statics"] or []:
+        sts[st['Name']] = gen_static(iface, st, blk['AddrSpace']['Start'])
+    return sts
+
+
+def gen_static(iface, static, blk_addr):
+    typ = static['Access']['Type']
+    if typ == 'SingleOneReg':
+        return StaticSingleOneReg(iface, static, blk_addr)
+    elif typ == 'SingleNRegs':
+        return StaticSingleNRegs(iface, static, blk_addr)
+    else:
+        raise Exception(f"unimplemented for access type '{typ}'")
+
+
+def gen_statuses(iface, blk):
+    sts = dict()
+    for st in blk["Statuses"] or []:
+        sts[st['Name']] = gen_status(iface, st, blk['AddrSpace']['Start'])
+    return sts
+
+
+def gen_status(iface, st, blk_addr):
+    typ = st['Access']['Type']
+    if typ == 'SingleOneReg':
+        return StatusSingleOneReg(iface, st, blk_addr)
+    elif typ == 'SingleNRegs':
+        return StatusSingleNRegs(iface, st, blk_addr)
+    elif typ == 'ArrayOneInReg':
+        return StatusArrayOneInReg(iface, st, blk_addr)
+    elif typ == 'ArrayOneInNRegs':
+        return StatusArrayOneInNRegs(iface, st, blk_addr)
+    elif typ == 'ArrayOneReg':
+        return StatusArrayOneReg(iface, st, blk_addr)
+    elif typ == 'ArrayNInReg':
+        return StatusArrayNInReg(iface, st, blk_addr)
+    elif typ == 'ArrayNInRegMInEndReg':
+        return StatusArrayNInRegMInEndReg(iface, st, blk_addr)
+    else:
+        raise Exception(f"unimplemented for access type '{typ}'")
+
+
+def gen_streams(iface, blk):
+    strms = dict()
+    for strm in blk["Streams"] or []:
+        strms[strm['Name']] = gen_stream(iface, strm, blk['AddrSpace']['Start'])
+    return strms
+
+
+def gen_stream(iface, strm, blk_addr):
+    lr = 0 if strm['Returns'] is None else len(strm['Returns'])
+    if lr > 0:
+        return Upstream(iface, strm, blk_addr)
+    else:
+        return Downstream(iface, strm, blk_addr)
+
+
 class Block:
-    def __init__(self, iface, block):
+    def __init__(self, iface, blk):
         self.iface = iface
 
-        self._gen_consts(block)
-        self._gen_subblocks(block)
+        for subblk in blk['Subblocks'] or []:
+            setattr(self, subblk['Name'], Block(self.iface, subblk))
 
-        self._gen_configs(block)
-        self._gen_masks(block)
-        self._gen_procs(block)
-        self._gen_statics(block)
-        self._gen_statuses(block)
-        self._gen_streams(block)
+        [setattr(self, name, c) for name, c in gen_consts(blk['Consts']).items()]
 
-    def _gen_consts(self, block):
-        consts = gen_consts(block['Consts'])
-        for name, val in consts.items():
-            setattr(self, name, val)
-
-    def _gen_subblocks(self, block):
-        for subblock in block['Subblocks'] or []:
-            setattr(self, subblock['Name'], Block(self.iface, subblock))
-
-    def _gen_configs(self, block):
-        for config in block["Configs"] or []:
-            c = self._gen_config(config, block['AddrSpace']['Start'])
-            setattr(self, config["Name"], c)
-
-    def _gen_config(self, config, blk_addr):
-        typ = config['Access']['Type']
-        if typ == 'SingleOneReg':
-            return ConfigSingleOneReg(self.iface, config, blk_addr)
-        elif typ == 'SingleNRegs':
-            return ConfigSingleNRegs(self.iface, config, blk_addr)
-        elif typ == 'ArrayOneInReg':
-            return ConfigArrayOneInReg(self.iface, config, blk_addr)
-        elif typ == 'ArrayOneReg':
-            return ConfigArrayOneReg(self.iface, config, blk_addr)
-        elif typ == 'ArrayNInReg':
-            return ConfigArrayNInReg(self.iface, config, blk_addr)
-        elif typ == 'ArrayNInRegMInEndReg':
-            return ConfigArrayNInRegMInEndReg(self.iface, config, blk_addr)
-        else:
-            raise Exception(f"unimplemented for access type '{typ}'")
-
-    def _gen_masks(self, block):
-        for mask in block["Masks"] or []:
-            m = self._gen_mask(mask, block['AddrSpace']['Start'])
-            setattr(self, mask["Name"], m)
-
-    def _gen_mask(self, mask, blk_addr):
-        typ = mask['Access']['Type']
-        if typ == 'SingleOneReg':
-            return MaskSingleOneReg(self.iface, mask, blk_addr)
-        elif typ == 'SingleNRegs':
-            return MaskSingleNRegs(self.iface, mask, blk_addr)
-        else:
-            raise Exception(f"unimplemented for access type '{typ}'")
-
-    def _gen_procs(self, block):
-        for proc in block["Procs"] or []:
-            p = self._gen_proc(proc, block['AddrSpace']['Start'])
-            setattr(self, proc["Name"], p)
-
-    def _gen_proc(self, proc, blk_addr):
-        lp = 0 if proc['Params'] is None else len(proc['Params'])
-        lr = 0 if proc['Returns'] is None else len(proc['Returns'])
-        if lp == 0 and lr == 0:
-            return EmptyProc(self.iface, proc, blk_addr)
-        elif lp > 0 and lr == 0:
-            return ParamsProc(self.iface, proc, blk_addr)
-        elif lp == 0 and lr > 0:
-            return ReturnsProc(self.iface, proc, blk_addr)
-        else:
-            return ParamsAndReturnsProc(self.iface, proc, blk_addr)
-
-    def _gen_statics(self, block):
-        for static in block["Statics"] or []:
-            s = self._gen_static(static, block['AddrSpace']['Start'])
-            setattr(self, static["Name"], s)
-
-    def _gen_static(self, static, blk_addr):
-        typ = static['Access']['Type']
-        if typ == 'SingleOneReg':
-            return StaticSingleOneReg(self.iface, static, blk_addr)
-        elif typ == 'SingleNRegs':
-            return StaticSingleNRegs(self.iface, static, blk_addr)
-        else:
-            raise Exception(f"unimplemented for access type '{typ}'")
-
-    def _gen_statuses(self, block):
-        for status in block["Statuses"] or []:
-            s = self._gen_status(status, block['AddrSpace']['Start'])
-            setattr(self, status["Name"], s)
-
-    def _gen_status(self, status, blk_addr):
-        typ = status['Access']['Type']
-        if typ == 'SingleOneReg':
-            return StatusSingleOneReg(self.iface, status, blk_addr)
-        elif typ == 'SingleNRegs':
-            return StatusSingleNRegs(self.iface, status, blk_addr)
-        elif typ == 'ArrayOneInReg':
-            return StatusArrayOneInReg(self.iface, status, blk_addr)
-        elif typ == 'ArrayOneInNRegs':
-            return StatusArrayOneInNRegs(self.iface, status, blk_addr)
-        elif typ == 'ArrayOneReg':
-            return StatusArrayOneReg(self.iface, status, blk_addr)
-        elif typ == 'ArrayNInReg':
-            return StatusArrayNInReg(self.iface, status, blk_addr)
-        elif typ == 'ArrayNInRegMInEndReg':
-            return StatusArrayNInRegMInEndReg(self.iface, status, blk_addr)
-        else:
-            raise Exception(f"unimplemented for access type '{typ}'")
-
-    def _gen_streams(self, block):
-        for stream in block["Streams"] or []:
-            s = self._gen_stream(stream, block['AddrSpace']['Start'])
-            setattr(self, stream["Name"], s)
-
-    def _gen_stream(self, stream, blk_addr):
-        lr = 0 if stream['Returns'] is None else len(stream['Returns'])
-        if lr > 0:
-            return Upstream(self.iface, stream, blk_addr)
-        else:
-            return Downstream(self.iface, stream, blk_addr)
+        [setattr(self, name, c) for name, c in gen_configs(iface, blk).items()]
+        [setattr(self, name, m) for name, m in gen_masks(iface, blk).items()]
+        [setattr(self, name, p) for name, p in gen_procs(iface, blk).items()]
+        [setattr(self, name, s) for name, s in gen_statics(iface, blk).items()]
+        [setattr(self, name, s) for name, s in gen_statuses(iface, blk).items()]
+        [setattr(self, name, s) for name, s in gen_streams(iface, blk).items()]
 
 
 class Bus(Block):
