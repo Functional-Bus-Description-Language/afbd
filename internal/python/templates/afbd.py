@@ -183,6 +183,7 @@ class Block:
         else:
             return Downstream(self.iface, stream, blk_addr)
 
+
 class Bus(Block):
     def __init__(self, iface, reg_file):
         self._reg_file = reg_file
@@ -192,135 +193,6 @@ class Bus(Block):
         json_stream.close()
 
         super().__init__(iface, bus)
-
-#
-# Procs
-#
-
-class EmptyProc:
-    def __init__(self, iface, proc, blk_addr):
-        self.iface = iface
-        self.call_addr = blk_addr + proc['CallAddr']
-        self.delay = calc_delay(proc["Delay"])
-        if self.delay is not None:
-            self.exit_addr = blk_addr + proc['ExitAddr']
-
-    def __call__(self):
-        self.iface.write(self.call_addr, 0)
-        if self.delay is not None:
-            if self.delay != 0:
-                time.sleep(self.delay)
-            self.iface.read(self.exit_addr)
-
-
-class ParamsProc:
-    def __init__(self, iface, proc, blk_addr):
-        self.iface = iface
-        self.params = proc['Params']
-        self.params_start_addr = blk_addr + self.params[0]['Access']['StartAddr']
-        self.delay = calc_delay(proc['Delay'])
-        if self.delay is not None:
-            self.exit_addr = blk_addr + proc['ExitAddr']
-
-    def __call__(self, *args):
-        assert len(args) == len(
-            self.params
-        ), "{}() takes {} arguments but {} were given".format(
-            self.__name__, len(self.params), len(args)
-        )
-
-        buf = pack_params(self.params, *args)
-
-        if len(buf) == 1:
-            self.iface.write(self.params_start_addr, buf[0])
-        else:
-            self.iface.writeb(self.params_start_addr, buf)
-
-        if self.delay is not None:
-            if self.delay != 0:
-                time.sleep(self.delay)
-            self.iface.read(self.exit_addr)
-
-
-class ReturnsProc:
-    def __init__(self, iface, returns_start_addr, returns, delay, call_addr):
-        self.iface = iface
-        self.returns_start_addr = returns_start_addr
-        self.delay = delay
-        self.call_addr = call_addr
-
-        self.buf_iface = BufferIface()
-        self.buf_size, self.returns = create_mock_returns(
-            self.buf_iface, returns_start_addr, returns
-        )
-
-    def __call__(self):
-        if self.delay is not None:
-            self.iface.write(self.call_addr, 0)
-            if self.delay != 0:
-                time.sleep(self.delay)
-
-        if self.buf_size == 1:
-            buf = [self.iface.read(self.returns_start_addr)]
-        else:
-            buf = self.iface.readb(self.returns_start_addr, self.buf_size)
-
-        self.buf_iface.set_buf(buf)
-        tup = []  # List to allow append but must be cast to tuple.
-
-        for ret in self.returns:
-            # NOTE: Groups are not yet supported so it is safe to immediately append.
-            tup.append(ret['Status'].read())
-
-        return tuple(tup)
-
-
-class ParamsAndReturnsProc:
-    def __init__(self, iface, params_start_addr, params, returns_start_addr, returns, delay):
-        self.iface = iface
-
-        self.params_start_addr = params_start_addr
-        self.params = params
-
-        self.returns_start_addr = returns_start_addr
-        self.returns_buf_iface = BufferIface()
-        self.returns_buf_size, self.returns = create_mock_returns(
-            self.returns_buf_iface, returns_start_addr, returns
-        )
-
-        self.delay = delay
-
-    def __call__(self, *args):
-        assert len(args) == len(
-            self.params
-        ), "{}() takes {} arguments but {} were given".format(
-            self.__name__, len(self.params), len(args)
-        )
-
-        params_buf = pack_params(self.params, *args)
-        if len(params_buf) == 1:
-            self.iface.write(self.params_start_addr, params_buf[0])
-        else:
-            self.iface.writeb(self.params_start_addr, params_buf)
-
-        if self.delay is not None:
-            if self.delay != 0:
-                time.sleep(self.delay)
-
-        if self.returns_buf_size == 1:
-            returns_buf = [self.iface.read(self.returns_start_addr)]
-        else:
-            returns_buf = self.iface.readb(
-                self.returns_start_addr, self.returns_buf_size
-            )
-        self.returns_buf_iface.set_buf(returns_buf)
-        tup = []  # List to allow append but must be cast to tuple.
-        for ret in self.returns:
-            # NOTE: Groups are not yet supported so it is safe to immediately append.
-            tup.append(ret["Status"].read())
-
-        return tuple(tup)
-
 #
 # Statuses
 #
@@ -870,6 +742,134 @@ class MaskSingleNRegs(StatusSingleNRegs, Mask):
             self.iface.write(
                 a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
             )
+
+#
+# Procs
+#
+
+class EmptyProc:
+    def __init__(self, iface, proc, blk_addr):
+        self.iface = iface
+        self.call_addr = blk_addr + proc['CallAddr']
+        self.delay = calc_delay(proc["Delay"])
+        if self.delay is not None:
+            self.exit_addr = blk_addr + proc['ExitAddr']
+
+    def __call__(self):
+        self.iface.write(self.call_addr, 0)
+        if self.delay is not None:
+            if self.delay != 0:
+                time.sleep(self.delay)
+            self.iface.read(self.exit_addr)
+
+
+class ParamsProc:
+    def __init__(self, iface, proc, blk_addr):
+        self.iface = iface
+        self.params = proc['Params']
+        self.params_start_addr = blk_addr + self.params[0]['Access']['StartAddr']
+        self.delay = calc_delay(proc['Delay'])
+        if self.delay is not None:
+            self.exit_addr = blk_addr + proc['ExitAddr']
+
+    def __call__(self, *args):
+        assert len(args) == len(
+            self.params
+        ), "{}() takes {} arguments but {} were given".format(
+            self.__name__, len(self.params), len(args)
+        )
+
+        buf = pack_params(self.params, *args)
+
+        if len(buf) == 1:
+            self.iface.write(self.params_start_addr, buf[0])
+        else:
+            self.iface.writeb(self.params_start_addr, buf)
+
+        if self.delay is not None:
+            if self.delay != 0:
+                time.sleep(self.delay)
+            self.iface.read(self.exit_addr)
+
+
+class ReturnsProc:
+    def __init__(self, iface, returns_start_addr, returns, delay, call_addr):
+        self.iface = iface
+        self.returns_start_addr = returns_start_addr
+        self.delay = delay
+        self.call_addr = call_addr
+
+        self.buf_iface = BufferIface()
+        self.buf_size, self.returns = create_mock_returns(
+            self.buf_iface, returns_start_addr, returns
+        )
+
+    def __call__(self):
+        if self.delay is not None:
+            self.iface.write(self.call_addr, 0)
+            if self.delay != 0:
+                time.sleep(self.delay)
+
+        if self.buf_size == 1:
+            buf = [self.iface.read(self.returns_start_addr)]
+        else:
+            buf = self.iface.readb(self.returns_start_addr, self.buf_size)
+
+        self.buf_iface.set_buf(buf)
+        tup = []  # List to allow append but must be cast to tuple.
+
+        for ret in self.returns:
+            # NOTE: Groups are not yet supported so it is safe to immediately append.
+            tup.append(ret['Status'].read())
+
+        return tuple(tup)
+
+
+class ParamsAndReturnsProc:
+    def __init__(self, iface, params_start_addr, params, returns_start_addr, returns, delay):
+        self.iface = iface
+
+        self.params_start_addr = params_start_addr
+        self.params = params
+
+        self.returns_start_addr = returns_start_addr
+        self.returns_buf_iface = BufferIface()
+        self.returns_buf_size, self.returns = create_mock_returns(
+            self.returns_buf_iface, returns_start_addr, returns
+        )
+
+        self.delay = delay
+
+    def __call__(self, *args):
+        assert len(args) == len(
+            self.params
+        ), "{}() takes {} arguments but {} were given".format(
+            self.__name__, len(self.params), len(args)
+        )
+
+        params_buf = pack_params(self.params, *args)
+        if len(params_buf) == 1:
+            self.iface.write(self.params_start_addr, params_buf[0])
+        else:
+            self.iface.writeb(self.params_start_addr, params_buf)
+
+        if self.delay is not None:
+            if self.delay != 0:
+                time.sleep(self.delay)
+
+        if self.returns_buf_size == 1:
+            returns_buf = [self.iface.read(self.returns_start_addr)]
+        else:
+            returns_buf = self.iface.readb(
+                self.returns_start_addr, self.returns_buf_size
+            )
+        self.returns_buf_iface.set_buf(returns_buf)
+        tup = []  # List to allow append but must be cast to tuple.
+        for ret in self.returns:
+            # NOTE: Groups are not yet supported so it is safe to immediately append.
+            tup.append(ret["Status"].read())
+
+        return tuple(tup)
 
 #
 # Streams
