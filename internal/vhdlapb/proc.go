@@ -6,16 +6,16 @@ import (
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/fn"
 )
 
-func genProc(p *fn.Proc, fmts *BlockEntityFormatters) {
-	genProcOutType(p, fmts)
-	genProcInType(p, fmts)
-	genProcPorts(p, fmts)
-	genProcAccess(p, fmts)
-	if p.CallAddr != nil {
-		genProcCall(p, fmts)
+func genProc(blk *fn.Block, proc *fn.Proc, fmts *BlockEntityFormatters) {
+	genProcOutType(proc, fmts)
+	genProcInType(proc, fmts)
+	genProcPorts(proc, fmts)
+	genProcAccess(blk, proc, fmts)
+	if proc.CallAddr != nil {
+		genProcCall(proc, fmts)
 	}
-	if p.ExitAddr != nil {
-		genProcExit(p, fmts)
+	if proc.ExitAddr != nil {
+		genProcExit(proc, fmts)
 	}
 }
 
@@ -68,20 +68,20 @@ func genProcPorts(proc *fn.Proc, fmts *BlockEntityFormatters) {
 	fmts.EntityFunctionalPorts += s
 }
 
-func genProcAccess(proc *fn.Proc, fmts *BlockEntityFormatters) {
-	genProcParamsAccess(proc, fmts)
-	genProcReturnsAccess(proc, fmts)
+func genProcAccess(blk *fn.Block, proc *fn.Proc, fmts *BlockEntityFormatters) {
+	genProcParamsAccess(blk, proc, fmts)
+	genProcReturnsAccess(blk, proc, fmts)
 }
 
-func genProcParamsAccess(proc *fn.Proc, fmts *BlockEntityFormatters) {
+func genProcParamsAccess(blk *fn.Block, proc *fn.Proc, fmts *BlockEntityFormatters) {
 	for _, param := range proc.Params {
 		switch param.Access.Type {
 		case "SingleOneReg":
-			genProcParamAccessSingleOneReg(proc, fmts, param)
+			genProcParamAccessSingleOneReg(blk, proc, param, fmts)
 		case "SingleNRegs":
-			genProcParamAccessSingleNRegs(proc, fmts, param)
+			genProcParamAccessSingleNRegs(blk, proc, param, fmts)
 		case "ArrayNRegs":
-			genProcParamAccessArrayNRegs(proc, fmts, param)
+			genProcParamAccessArrayNRegs(blk, proc, param, fmts)
 		default:
 			panic("should never happen")
 		}
@@ -89,12 +89,14 @@ func genProcParamsAccess(proc *fn.Proc, fmts *BlockEntityFormatters) {
 
 	if proc.IsEmpty() || (proc.IsReturn() && proc.Delay != nil) {
 		if proc.CallAddr != nil {
-			fmts.RegistersAccess.add([2]int64{*proc.CallAddr, *proc.CallAddr}, "")
+			fmts.RegistersAccess.add(
+				addrRange(*proc.CallAddr, *proc.CallAddr, blk), "",
+			)
 		}
 	}
 }
 
-func genProcParamAccessSingleOneReg(proc *fn.Proc, fmts *BlockEntityFormatters, param *fn.Param) {
+func genProcParamAccessSingleOneReg(blk *fn.Block, proc *fn.Proc, param *fn.Param, fmts *BlockEntityFormatters) {
 	acs := param.Access
 
 	code := fmt.Sprintf(`
@@ -104,11 +106,10 @@ func genProcParamAccessSingleOneReg(proc *fn.Proc, fmts *BlockEntityFormatters, 
     apb_com.rdata(%[3]d downto %[4]d) <= %[1]s_o.%[2]s;`,
 		proc.Name, param.Name, acs.EndBit, acs.StartBit,
 	)
-	addr := acs.StartAddr
-	fmts.RegistersAccess.add([2]int64{addr, addr}, code)
+	fmts.RegistersAccess.add(addrRange(acs.StartAddr, acs.EndAddr, blk), code)
 }
 
-func genProcParamAccessSingleNRegs(proc *fn.Proc, fmts *BlockEntityFormatters, param *fn.Param) {
+func genProcParamAccessSingleNRegs(blk *fn.Block, proc *fn.Proc, param *fn.Param, fmts *BlockEntityFormatters) {
 	acs := param.Access
 
 	chunks := makeAccessChunksContinuous(acs, Compact)
@@ -120,11 +121,11 @@ func genProcParamAccessSingleNRegs(proc *fn.Proc, fmts *BlockEntityFormatters, p
     apb_com.rdata(%[5]d downto %[6]d) <= %[1]s_o.%[2]s(%[3]s downto %[4]s);`,
 			proc.Name, param.Name, c.range_[0], c.range_[1], c.endBit, c.startBit,
 		)
-		fmts.RegistersAccess.add([2]int64{c.addr[0], c.addr[1]}, code)
+		fmts.RegistersAccess.add(addrRange(c.addr[0], c.addr[1], blk), code)
 	}
 }
 
-func genProcParamAccessArrayNRegs(proc *fn.Proc, fmts *BlockEntityFormatters, param *fn.Param) {
+func genProcParamAccessArrayNRegs(blk *fn.Block, proc *fn.Proc, param *fn.Param, fmts *BlockEntityFormatters) {
 	acs := param.Access
 
 	fmts.SignalDeclarations += fmt.Sprintf(
@@ -138,7 +139,7 @@ func genProcParamAccessArrayNRegs(proc *fn.Proc, fmts *BlockEntityFormatters, pa
     end if;`,
 		proc.Name, param.Name, acs.StartAddr,
 	)
-	fmts.RegistersAccess.add([2]int64{acs.StartAddr, acs.EndAddr}, code)
+	fmts.RegistersAccess.add(addrRange(acs.StartAddr, acs.EndAddr, blk), code)
 
 	code = fmt.Sprintf(
 		`
@@ -177,24 +178,25 @@ end process;
 	fmts.CombinationalProcesses += code
 }
 
-func genProcReturnsAccess(proc *fn.Proc, fmts *BlockEntityFormatters) {
+func genProcReturnsAccess(blk *fn.Block, proc *fn.Proc, fmts *BlockEntityFormatters) {
 	for _, r := range proc.Returns {
 		switch acs := r.Access; acs.Type {
 		case "SingleOneReg":
-			addr := [2]int64{acs.StartAddr, acs.StartAddr}
 			code := fmt.Sprintf(
 				"    apb_com.rdata(%[1]d downto %[2]d) <= %[3]s_i.%[4]s;\n",
 				acs.EndBit, acs.StartBit, proc.Name, r.Name,
 			)
 
-			fmts.RegistersAccess.add(addr, code)
+			fmts.RegistersAccess.add(addrRange(acs.StartAddr, acs.EndAddr, blk), code)
 		default:
 			panic("unimplemented")
 		}
 	}
 	if (proc.IsEmpty() || proc.IsParam()) && proc.Delay != nil {
 		if proc.ExitAddr != nil {
-			fmts.RegistersAccess.add([2]int64{*proc.ExitAddr, *proc.ExitAddr}, "")
+			fmts.RegistersAccess.add(
+				addrRange(*proc.ExitAddr, *proc.ExitAddr, blk), "",
+			)
 		}
 	}
 }

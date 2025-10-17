@@ -60,63 +60,63 @@ type BlockEntityFormatters struct {
 	CombinationalProcesses string
 }
 
-func genBlock(b utils.Block, wg *sync.WaitGroup) {
+func genBlock(blk utils.Block, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	intAddrBitCount := int64(1)
-	if b.Block.Sizes.Own > 1 {
-		intAddrBitCount = int64(math.Ceil(math.Log2(float64(b.Block.Sizes.Own))))
+	if blk.Block.Sizes.Own > 1 {
+		intAddrBitCount = int64(math.Ceil(math.Log2(float64(blk.Block.Sizes.Own))))
 	}
 
 	fmts := BlockEntityFormatters{
 		BusWidth:             busWidth,
-		EntityName:           b.Name,
-		MasterCount:          b.Block.Masters,
-		RegCount:             b.Block.Sizes.Own,
+		EntityName:           blk.Name,
+		MasterCount:          blk.Block.Masters,
+		RegCount:             blk.Block.Sizes.Own,
 		InternalAddrBitCount: intAddrBitCount,
 		AddressValues:        fmt.Sprintf("0 => \"%032b\"", 0),
 		RegistersAccess:      make(RegisterMap),
 	}
 
-	addrBitsCount := int(math.Log2(float64(b.Block.Sizes.BlockAligned)))
+	addrBitsCount := int(math.Log2(float64(blk.Block.Sizes.BlockAligned)))
 
 	mask := 0
-	if len(b.Block.Subblocks) > 0 {
+	if len(blk.Block.Subblocks) > 0 {
 		mask = ((1 << addrBitsCount) - 1) ^ ((1 << fmts.InternalAddrBitCount) - 1)
 	}
 	fmts.MaskValues = fmt.Sprintf("0 => \"%032b\"", mask<<2)
 
-	genConsts(&b.Block.Consts, &fmts)
+	genConsts(&blk.Block.Consts, &fmts)
 
-	for _, sb := range b.Block.Subblocks {
-		genSubblock(sb, b.Block.StartAddr(), addrBitsCount, &fmts)
+	for _, sb := range blk.Block.Subblocks {
+		genSubblock(sb, blk.Block.StartAddr(), addrBitsCount, &fmts)
 	}
 
-	for _, proc := range b.Block.Procs {
-		genProc(proc, &fmts)
+	for _, proc := range blk.Block.Procs {
+		genProc(blk.Block, proc, &fmts)
 	}
 
-	for _, stream := range b.Block.Streams {
-		genStream(stream, &fmts)
+	for _, stream := range blk.Block.Streams {
+		genStream(blk.Block, stream, &fmts)
 	}
 
-	for _, st := range b.Block.Statics {
-		genStatic(st, &fmts)
+	for _, st := range blk.Block.Statics {
+		genStatic(blk.Block, st, &fmts)
 	}
 
-	for _, st := range b.Block.Statuses {
-		genStatus(st, &fmts)
+	for _, st := range blk.Block.Statuses {
+		genStatus(blk.Block, st, &fmts)
 	}
 
-	for _, cfg := range b.Block.Configs {
-		genConfig(cfg, &fmts)
+	for _, cfg := range blk.Block.Configs {
+		genConfig(blk.Block, cfg, &fmts)
 	}
 
-	for _, mask := range b.Block.Masks {
-		genMask(mask, &fmts)
+	for _, mask := range blk.Block.Masks {
+		genMask(blk.Block, mask, &fmts)
 	}
 
-	filePath := path.Join(args.VhdlApb.Path, (b.Name + ".vhd"))
+	filePath := path.Join(args.VhdlApb.Path, (blk.Name + ".vhd"))
 	f, err := os.Create(filePath)
 	if err != nil {
 		log.Fatalf("generate vhdl-apb: %v", err)
@@ -187,13 +187,13 @@ func genSubblock(
 	}
 }
 
-func genConsts(c *cnst.Container, fmts *BlockEntityFormatters) {
+func genConsts(cc *cnst.Container, fmts *BlockEntityFormatters) {
 	s := ""
 
-	for name, b := range c.Bools {
+	for name, b := range cc.Bools {
 		s += fmt.Sprintf("constant %s : boolean := %t;\n", name, b)
 	}
-	for name, list := range c.BoolLists {
+	for name, list := range cc.BoolLists {
 		s += fmt.Sprintf("constant %s : boolean_vector(0 to %d) := (", name, len(list)-1)
 		for i, b := range list {
 			s += fmt.Sprintf("%d => %t, ", i, b)
@@ -201,10 +201,10 @@ func genConsts(c *cnst.Container, fmts *BlockEntityFormatters) {
 		s = s[:len(s)-2]
 		s += ");\n"
 	}
-	for name, i := range c.Ints {
+	for name, i := range cc.Ints {
 		s += fmt.Sprintf("constant %s : int64 := signed'(x\"%016x\");\n", name, i)
 	}
-	for name, list := range c.IntLists {
+	for name, list := range cc.IntLists {
 		s += fmt.Sprintf("constant %s : int64_vector(0 to %d) := (", name, len(list)-1)
 		for i, v := range list {
 			s += fmt.Sprintf("%d => signed'(x\"%016x\"), ", i, v)
@@ -212,7 +212,7 @@ func genConsts(c *cnst.Container, fmts *BlockEntityFormatters) {
 		s = s[:len(s)-2]
 		s += ");\n"
 	}
-	for name, str := range c.Strings {
+	for name, str := range cc.Strings {
 		s += fmt.Sprintf("constant %s : string := %q;\n", name, str)
 	}
 

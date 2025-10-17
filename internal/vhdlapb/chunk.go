@@ -3,7 +3,7 @@ package vhdlapb
 import (
 	"fmt"
 
-	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/access"
+	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/types"
 )
 
 type chunkStrategy uint8
@@ -21,7 +21,7 @@ type accessChunk struct {
 	endBit   int64
 }
 
-func makeAccessChunksContinuous(acs access.Access, strategy chunkStrategy) []accessChunk {
+func makeAccessChunksContinuous(acs types.Access, strategy chunkStrategy) []accessChunk {
 	startBit := acs.StartBit
 	endBit := acs.EndBit
 

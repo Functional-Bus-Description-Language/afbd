@@ -2,10 +2,12 @@ package vhdlapb
 
 import (
 	"testing"
+
+	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/types"
 )
 
 type testTuple struct {
-	addr [2]int64
+	addr types.SingleRange
 	code string
 }
 
@@ -16,28 +18,28 @@ func TestEndOverlap(t *testing.T) {
 		want   RegisterMap
 	}{
 		{
-			testTuple{addr: [2]int64{0, 1}, code: "f"},
-			testTuple{addr: [2]int64{1, 1}, code: "s"},
+			testTuple{addr: types.SingleRange{Start: 0, End: 1}, code: "f"},
+			testTuple{addr: types.SingleRange{Start: 1, End: 1}, code: "s"},
 			RegisterMap{
-				[2]int64{0, 0}: "f",
-				[2]int64{1, 1}: "fs",
+				types.SingleRange{Start: 0, End: 0}: "f",
+				types.SingleRange{Start: 1, End: 1}: "fs",
 			},
 		},
 		{
-			testTuple{addr: [2]int64{0, 2}, code: "f"},
-			testTuple{addr: [2]int64{1, 2}, code: "s"},
+			testTuple{addr: types.SingleRange{Start: 0, End: 2}, code: "f"},
+			testTuple{addr: types.SingleRange{Start: 1, End: 2}, code: "s"},
 			RegisterMap{
-				[2]int64{0, 0}: "f",
-				[2]int64{1, 2}: "fs",
+				types.SingleRange{Start: 0, End: 0}: "f",
+				types.SingleRange{Start: 1, End: 2}: "fs",
 			},
 		},
 		{
-			testTuple{addr: [2]int64{0, 3}, code: "f"},
-			testTuple{addr: [2]int64{2, 5}, code: "s"},
+			testTuple{addr: types.SingleRange{Start: 0, End: 3}, code: "f"},
+			testTuple{addr: types.SingleRange{Start: 2, End: 5}, code: "s"},
 			RegisterMap{
-				[2]int64{0, 1}: "f",
-				[2]int64{2, 3}: "fs",
-				[2]int64{4, 5}: "s",
+				types.SingleRange{Start: 0, End: 1}: "f",
+				types.SingleRange{Start: 2, End: 3}: "fs",
+				types.SingleRange{Start: 4, End: 5}: "s",
 			},
 		},
 	}
@@ -63,20 +65,20 @@ func TestMiddleOverlap(t *testing.T) {
 		want   RegisterMap
 	}{
 		{
-			testTuple{addr: [2]int64{0, 3}, code: "f"},
-			testTuple{addr: [2]int64{1, 2}, code: "s"},
+			testTuple{addr: types.SingleRange{Start: 0, End: 3}, code: "f"},
+			testTuple{addr: types.SingleRange{Start: 1, End: 2}, code: "s"},
 			RegisterMap{
-				[2]int64{0, 0}: "f",
-				[2]int64{1, 2}: "fs",
-				[2]int64{3, 3}: "f",
+				types.SingleRange{Start: 0, End: 0}: "f",
+				types.SingleRange{Start: 1, End: 2}: "fs",
+				types.SingleRange{Start: 3, End: 3}: "f",
 			},
 		},
 		{
-			testTuple{addr: [2]int64{0, 6}, code: "f"},
-			testTuple{addr: [2]int64{5, 6}, code: "s"},
+			testTuple{addr: types.SingleRange{Start: 0, End: 6}, code: "f"},
+			testTuple{addr: types.SingleRange{Start: 5, End: 6}, code: "s"},
 			RegisterMap{
-				[2]int64{0, 4}: "f",
-				[2]int64{5, 6}: "fs",
+				types.SingleRange{Start: 0, End: 4}: "f",
+				types.SingleRange{Start: 5, End: 6}: "fs",
 			},
 		},
 	}
@@ -102,28 +104,28 @@ func TestStartOverlap(t *testing.T) {
 		want   RegisterMap
 	}{
 		{
-			testTuple{addr: [2]int64{0, 1}, code: "f"},
-			testTuple{addr: [2]int64{0, 0}, code: "s"},
+			testTuple{addr: types.SingleRange{Start: 0, End: 1}, code: "f"},
+			testTuple{addr: types.SingleRange{Start: 0, End: 0}, code: "s"},
 			RegisterMap{
-				[2]int64{0, 0}: "fs",
-				[2]int64{1, 1}: "f",
+				types.SingleRange{Start: 0, End: 0}: "fs",
+				types.SingleRange{Start: 1, End: 1}: "f",
 			},
 		},
 		{
-			testTuple{addr: [2]int64{0, 2}, code: "f"},
-			testTuple{addr: [2]int64{0, 1}, code: "s"},
+			testTuple{addr: types.SingleRange{Start: 0, End: 2}, code: "f"},
+			testTuple{addr: types.SingleRange{Start: 0, End: 1}, code: "s"},
 			RegisterMap{
-				[2]int64{0, 1}: "fs",
-				[2]int64{2, 2}: "f",
+				types.SingleRange{Start: 0, End: 1}: "fs",
+				types.SingleRange{Start: 2, End: 2}: "f",
 			},
 		},
 		{
-			testTuple{addr: [2]int64{3, 5}, code: "f"},
-			testTuple{addr: [2]int64{2, 3}, code: "s"},
+			testTuple{addr: types.SingleRange{Start: 3, End: 5}, code: "f"},
+			testTuple{addr: types.SingleRange{Start: 2, End: 3}, code: "s"},
 			RegisterMap{
-				[2]int64{2, 2}: "s",
-				[2]int64{3, 3}: "fs",
-				[2]int64{4, 5}: "f",
+				types.SingleRange{Start: 2, End: 2}: "s",
+				types.SingleRange{Start: 3, End: 3}: "fs",
+				types.SingleRange{Start: 4, End: 5}: "f",
 			},
 		},
 	}

@@ -1,58 +1,85 @@
 package vhdlapb
 
-type RegisterMap map[[2]int64]string
+import (
+	"fmt"
 
-func (rm RegisterMap) add(addr [2]int64, code string) {
-	if addr[1] < addr[0] {
-		panic("addr[1] < addr[0]")
+	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/types"
+)
+
+type RegisterMap map[types.SingleRange]string
+
+// addrRng is address range
+func (regMap RegisterMap) add(addrRng types.SingleRange, code string) {
+	if addrRng.End < addrRng.Start {
+		panic(fmt.Sprintf("adrrRng.End (%d) < addrRng.Start (%d)", addrRng.End, addrRng.Start))
 	}
 
-	overlaps := [][2]int64{}
-	for a := range rm {
-		if (a[0] <= addr[0] && addr[0] <= a[1]) ||
-			a[0] <= addr[1] && addr[1] <= a[1] {
-			overlaps = append(overlaps, a)
+	overlaps := []types.SingleRange{}
+	for ar := range regMap {
+		if (ar.Start <= addrRng.Start && addrRng.Start <= ar.End) ||
+			ar.Start <= addrRng.End && addrRng.End <= ar.End {
+			overlaps = append(overlaps, ar)
 		}
 	}
 
 	if len(overlaps) == 0 {
-		rm[addr] = code
+		regMap[addrRng] = code
 		return
 	}
 
-	if len(overlaps) == 1 && overlaps[0][0] == addr[0] && overlaps[0][1] == addr[1] {
-		rm[addr] += code
+	if len(overlaps) == 1 && overlaps[0].Start == addrRng.Start && overlaps[0].End == addrRng.End {
+		regMap[addrRng] += code
 		return
 	}
 
-	for _, o := range overlaps {
-		tmpCode := rm[o]
-		delete(rm, o)
+	for _, ovlp := range overlaps {
+		ovlpCode := regMap[ovlp]
+		delete(regMap, ovlp)
 
 		// Middle overlap
-		if o[0] < addr[0] && addr[1] < o[1] {
-			rm[[2]int64{o[0], addr[0] - 1}] = tmpCode
-			rm[addr] = tmpCode + code
-			rm[[2]int64{addr[1] + 1, o[1]}] = tmpCode
+		if ovlp.Start < addrRng.Start && addrRng.End < ovlp.End {
+			regMap[types.SingleRange{
+				Start: ovlp.Start, End: addrRng.Start - 1,
+			}] = ovlpCode
+			regMap[addrRng] = ovlpCode + code
+			regMap[types.SingleRange{
+				Start: addrRng.End + 1, End: ovlp.End,
+			}] = ovlpCode
 		}
+
 		// Start overlap
-		if addr[0] <= o[0] && addr[1] < o[1] {
-			rm[[2]int64{addr[1] + 1, o[1]}] = tmpCode
-			if o[0] == addr[0] {
-				rm[addr] = tmpCode + code
+		if addrRng.Start <= ovlp.Start && addrRng.End < ovlp.End {
+			regMap[types.SingleRange{
+				Start: addrRng.End + 1, End: ovlp.End,
+			}] = ovlpCode
+
+			if ovlp.Start == addrRng.Start {
+				regMap[addrRng] = ovlpCode + code
 			} else {
-				rm[[2]int64{addr[0], o[0] - 1}] = code
-				rm[[2]int64{o[0], addr[1]}] = tmpCode + code
+				regMap[types.SingleRange{
+					Start: addrRng.Start, End: ovlp.Start - 1,
+				}] = code
+				regMap[types.SingleRange{
+					Start: ovlp.Start, End: addrRng.End,
+				}] = ovlpCode + code
 			}
 		}
+
 		// End overlap
-		if o[0] < addr[0] && o[1] <= addr[1] {
-			rm[[2]int64{o[0], addr[0] - 1}] = tmpCode
-			if o[1] == addr[1] {
-				rm[addr] = tmpCode + code
+		if ovlp.Start < addrRng.Start && ovlp.End <= addrRng.End {
+			regMap[types.SingleRange{
+				Start: ovlp.Start, End: addrRng.Start - 1,
+			}] = ovlpCode
+
+			if ovlp.End == addrRng.End {
+				regMap[addrRng] = ovlpCode + code
 			} else {
-				rm[[2]int64{addr[0], o[1]}] = tmpCode + code
-				rm[[2]int64{o[1] + 1, addr[1]}] = code
+				regMap[types.SingleRange{
+					Start: addrRng.Start, End: ovlp.End,
+				}] = ovlpCode + code
+				regMap[types.SingleRange{
+					Start: ovlp.End + 1, End: addrRng.End,
+				}] = code
 			}
 		}
 	}

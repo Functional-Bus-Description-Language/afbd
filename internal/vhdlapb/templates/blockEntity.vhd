@@ -106,7 +106,7 @@ transfer : if apb_req.selx = '1' then
   apb_com.rdata <= (others => '0');
 
   -- Registers Access{{range $addr, $code := .RegistersAccess}}
-  if {{index $addr 0}} <= addr and addr <= {{index $addr 1}} then
+  if {{$addr.Start}} <= addr and addr <= {{$addr.End}} then
 {{$code}}
 
     apb_com.slverr <= '0';

@@ -6,14 +6,14 @@ import (
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/fn"
 )
 
-func genStream(stream *fn.Stream, fmts *BlockEntityFormatters) {
+func genStream(blk *fn.Block, stream *fn.Stream, fmts *BlockEntityFormatters) {
 	genStreamType(stream, fmts)
 	genStreamPorts(stream, fmts)
 
 	if stream.IsUpstream() {
-		genUpstreamAccess(stream, fmts)
+		genUpstreamAccess(blk, stream, fmts)
 	} else {
-		genDownstreamAccess(stream, fmts)
+		genDownstreamAccess(blk, stream, fmts)
 	}
 
 	genStreamStrobe(stream, fmts)
@@ -65,17 +65,16 @@ func genStreamPorts(stream *fn.Stream, fmts *BlockEntityFormatters) {
 	fmts.EntityFunctionalPorts += s
 }
 
-func genUpstreamAccess(stream *fn.Stream, fmts *BlockEntityFormatters) {
+func genUpstreamAccess(blk *fn.Block, stream *fn.Stream, fmts *BlockEntityFormatters) {
 	for _, r := range stream.Returns {
 		switch acs := r.Access; acs.Type {
 		case "SingleOneReg":
-			addr := [2]int64{acs.StartAddr, acs.StartAddr}
 			code := fmt.Sprintf(
 				"    apb_com.rdata(%d downto %d) <= %s_i.%s;\n",
 				acs.EndBit, acs.StartBit, stream.Name, r.Name,
 			)
 
-			fmts.RegistersAccess.add(addr, code)
+			fmts.RegistersAccess.add(addrRange(acs.StartAddr, acs.EndAddr, blk), code)
 		case "SingleNRegs":
 			chunks := makeAccessChunksContinuous(acs, Compact)
 
@@ -85,7 +84,7 @@ func genUpstreamAccess(stream *fn.Stream, fmts *BlockEntityFormatters) {
 					stream.Name, r.Name, c.range_[0], c.range_[1], c.endBit, c.startBit,
 				)
 
-				fmts.RegistersAccess.add([2]int64{c.addr[0], c.addr[1]}, code)
+				fmts.RegistersAccess.add(addrRange(c.addr[0], c.addr[1], blk), code)
 			}
 		default:
 			panic("unimplemented")
@@ -93,11 +92,10 @@ func genUpstreamAccess(stream *fn.Stream, fmts *BlockEntityFormatters) {
 	}
 }
 
-func genDownstreamAccess(stream *fn.Stream, fmts *BlockEntityFormatters) {
+func genDownstreamAccess(blk *fn.Block, stream *fn.Stream, fmts *BlockEntityFormatters) {
 	for _, p := range stream.Params {
 		switch acs := p.Access; acs.Type {
 		case "SingleOneReg":
-			addr := [2]int64{acs.StartAddr, acs.StartAddr}
 			code := fmt.Sprintf(`
     if apb_req.write = '1' then
       %s_o.%s <= apb_req.wdata(%d downto %d);
@@ -106,7 +104,7 @@ func genDownstreamAccess(stream *fn.Stream, fmts *BlockEntityFormatters) {
 				stream.Name, p.Name, acs.EndBit, acs.StartBit,
 			)
 
-			fmts.RegistersAccess.add(addr, code)
+			fmts.RegistersAccess.add(addrRange(acs.StartAddr, acs.EndAddr, blk), code)
 		case "SingleNRegs":
 			chunks := makeAccessChunksContinuous(acs, Compact)
 
@@ -119,7 +117,7 @@ func genDownstreamAccess(stream *fn.Stream, fmts *BlockEntityFormatters) {
 					stream.Name, p.Name, c.range_[0], c.range_[1], c.endBit, c.startBit,
 				)
 
-				fmts.RegistersAccess.add([2]int64{c.addr[0], c.addr[1]}, code)
+				fmts.RegistersAccess.add(addrRange(c.addr[0], c.addr[1], blk), code)
 			}
 		default:
 			panic("unimplemented")

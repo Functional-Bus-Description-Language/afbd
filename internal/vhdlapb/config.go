@@ -6,15 +6,15 @@ import (
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/fn"
 )
 
-func genConfig(cfg *fn.Config, fmts *BlockEntityFormatters) {
+func genConfig(blk *fn.Block, cfg *fn.Config, fmts *BlockEntityFormatters) {
 	if cfg.IsArray {
-		genConfigArray(cfg, fmts)
+		genConfigArray(blk, cfg, fmts)
 	} else {
-		genConfigSingle(cfg, fmts)
+		genConfigSingle(blk, cfg, fmts)
 	}
 }
 
-func genConfigArray(cfg *fn.Config, fmts *BlockEntityFormatters) {
+func genConfigArray(blk *fn.Block, cfg *fn.Config, fmts *BlockEntityFormatters) {
 	port := fmt.Sprintf(
 		";\n  %s_o : buffer slv_vector(%d downto 0)(%d downto 0)",
 		cfg.Name, cfg.Count-1, cfg.Width-1,
@@ -26,19 +26,19 @@ func genConfigArray(cfg *fn.Config, fmts *BlockEntityFormatters) {
 
 	switch cfg.Access.Type {
 	case "ArrayOneReg":
-		genConfigArrayOneReg(cfg, fmts)
+		genConfigArrayOneReg(blk, cfg, fmts)
 	case "ArrayOneInReg":
-		genConfigArrayOneInReg(cfg, fmts)
+		genConfigArrayOneInReg(blk, cfg, fmts)
 	case "ArrayNInReg":
-		genConfigArrayNInReg(cfg, fmts)
+		genConfigArrayNInReg(blk, cfg, fmts)
 	case "ArrayNInRegMInEndReg":
-		genConfigArrayNInRegMInEndReg(cfg, fmts)
+		genConfigArrayNInRegMInEndReg(blk, cfg, fmts)
 	default:
 		panic("unimplemented")
 	}
 }
 
-func genConfigSingle(cfg *fn.Config, fmts *BlockEntityFormatters) {
+func genConfigSingle(blk *fn.Block, cfg *fn.Config, fmts *BlockEntityFormatters) {
 	dflt := ""
 	if cfg.InitValue != "" {
 		dflt = fmt.Sprintf(" := %s", cfg.InitValue.Extend(cfg.Width))
@@ -51,15 +51,15 @@ func genConfigSingle(cfg *fn.Config, fmts *BlockEntityFormatters) {
 
 	switch cfg.Access.Type {
 	case "SingleOneReg":
-		genConfigSingleOneReg(cfg, fmts)
+		genConfigSingleOneReg(blk, cfg, fmts)
 	case "SingleNRegs":
-		genConfigSingleNRegs(cfg, fmts)
+		genConfigSingleNRegs(blk, cfg, fmts)
 	default:
 		panic("unimplemented")
 	}
 }
 
-func genConfigSingleOneReg(cfg *fn.Config, fmts *BlockEntityFormatters) {
+func genConfigSingleOneReg(blk *fn.Block, cfg *fn.Config, fmts *BlockEntityFormatters) {
 	acs := cfg.Access
 
 	code := fmt.Sprintf(`
@@ -70,19 +70,18 @@ func genConfigSingleOneReg(cfg *fn.Config, fmts *BlockEntityFormatters) {
 		cfg.Name, acs.EndBit, acs.StartBit,
 	)
 
-	addr := acs.StartAddr
-	fmts.RegistersAccess.add([2]int64{addr, addr}, code)
+	fmts.RegistersAccess.add(addrRange(acs.StartAddr, acs.EndAddr, blk), code)
 }
 
-func genConfigSingleNRegs(cfg *fn.Config, fmts *BlockEntityFormatters) {
+func genConfigSingleNRegs(blk *fn.Block, cfg *fn.Config, fmts *BlockEntityFormatters) {
 	if cfg.Atomic {
-		genConfigSingleNRegsAtomic(cfg, fmts)
+		genConfigSingleNRegsAtomic(blk, cfg, fmts)
 	} else {
-		genConfigSingleNRegsNonAtomic(cfg, fmts)
+		genConfigSingleNRegsNonAtomic(blk, cfg, fmts)
 	}
 }
 
-func genConfigSingleNRegsAtomic(cfg *fn.Config, fmts *BlockEntityFormatters) {
+func genConfigSingleNRegsAtomic(blk *fn.Block, cfg *fn.Config, fmts *BlockEntityFormatters) {
 	acs := cfg.Access
 	strategy := SeparateLast
 	atomicShadowRange := [2]int64{cfg.Width - 1 - acs.EndRegWidth, 0}
@@ -116,11 +115,11 @@ func genConfigSingleNRegsAtomic(cfg *fn.Config, fmts *BlockEntityFormatters) {
 			)
 		}
 
-		fmts.RegistersAccess.add([2]int64{c.addr[0], c.addr[1]}, code)
+		fmts.RegistersAccess.add(addrRange(c.addr[0], c.addr[1], blk), code)
 	}
 }
 
-func genConfigSingleNRegsNonAtomic(cfg *fn.Config, fmts *BlockEntityFormatters) {
+func genConfigSingleNRegsNonAtomic(blk *fn.Block, cfg *fn.Config, fmts *BlockEntityFormatters) {
 	acs := cfg.Access
 	chunks := makeAccessChunksContinuous(acs, Compact)
 
@@ -133,11 +132,11 @@ func genConfigSingleNRegsNonAtomic(cfg *fn.Config, fmts *BlockEntityFormatters) 
 			cfg.Name, c.range_[0], c.range_[1], c.endBit, c.startBit,
 		)
 
-		fmts.RegistersAccess.add([2]int64{c.addr[0], c.addr[1]}, code)
+		fmts.RegistersAccess.add(addrRange(c.addr[0], c.addr[1], blk), code)
 	}
 }
 
-func genConfigArrayOneInReg(cfg *fn.Config, fmts *BlockEntityFormatters) {
+func genConfigArrayOneInReg(blk *fn.Block, cfg *fn.Config, fmts *BlockEntityFormatters) {
 	acs := cfg.Access
 
 	code := fmt.Sprintf(`
@@ -149,15 +148,14 @@ func genConfigArrayOneInReg(cfg *fn.Config, fmts *BlockEntityFormatters) {
 	)
 
 	fmts.RegistersAccess.add(
-		[2]int64{acs.StartAddr, acs.StartAddr + acs.RegCount - 1},
+		addrRange(acs.StartAddr, acs.StartAddr+acs.RegCount-1, blk),
 		code,
 	)
 }
 
-func genConfigArrayOneReg(cfg *fn.Config, fmts *BlockEntityFormatters) {
+func genConfigArrayOneReg(blk *fn.Block, cfg *fn.Config, fmts *BlockEntityFormatters) {
 	acs := cfg.Access
 
-	addr := [2]int64{acs.StartAddr, acs.EndAddr}
 	code := fmt.Sprintf(`
     for i in 0 to %[1]d loop
       if apb_req.write = '1' then
@@ -168,15 +166,14 @@ func genConfigArrayOneReg(cfg *fn.Config, fmts *BlockEntityFormatters) {
 		cfg.Count-1, cfg.Name, acs.ItemWidth, acs.StartBit,
 	)
 
-	fmts.RegistersAccess.add(addr, code)
+	fmts.RegistersAccess.add(addrRange(acs.StartAddr, acs.EndAddr, blk), code)
 }
 
-func genConfigArrayNInReg(cfg *fn.Config, fmts *BlockEntityFormatters) {
+func genConfigArrayNInReg(blk *fn.Block, cfg *fn.Config, fmts *BlockEntityFormatters) {
 	acs := cfg.Access
 
 	itemsInReg := acs.RegWidth / acs.ItemWidth
 
-	addr := [2]int64{acs.StartAddr, acs.EndAddr}
 	code := fmt.Sprintf(`
     for i in 0 to %[1]d loop
       if apb_req.write = '1' then
@@ -187,16 +184,15 @@ func genConfigArrayNInReg(cfg *fn.Config, fmts *BlockEntityFormatters) {
 		itemsInReg-1, acs.ItemWidth, acs.StartBit, cfg.Name, acs.StartAddr, itemsInReg,
 	)
 
-	fmts.RegistersAccess.add(addr, code)
+	fmts.RegistersAccess.add(addrRange(acs.StartAddr, acs.EndAddr, blk), code)
 }
 
-func genConfigArrayNInRegMInEndReg(cfg *fn.Config, fmts *BlockEntityFormatters) {
+func genConfigArrayNInRegMInEndReg(blk *fn.Block, cfg *fn.Config, fmts *BlockEntityFormatters) {
 	acs := cfg.Access
 
 	itemsInReg := acs.RegWidth / acs.ItemWidth
 	itemsInEndReg := acs.ItemCount - ((acs.RegCount - 1) * itemsInReg)
 
-	addr := [2]int64{acs.StartAddr, acs.EndAddr - 1}
 	code := fmt.Sprintf(`
     for i in 0 to %[1]d loop
       if apb_req.write = '1' then
@@ -206,9 +202,8 @@ func genConfigArrayNInRegMInEndReg(cfg *fn.Config, fmts *BlockEntityFormatters) 
     end loop;`,
 		itemsInReg-1, acs.ItemWidth, acs.StartBit, cfg.Name, acs.StartAddr, itemsInReg,
 	)
-	fmts.RegistersAccess.add(addr, code)
+	fmts.RegistersAccess.add(addrRange(acs.StartAddr, acs.EndAddr-1, blk), code)
 
-	addr = [2]int64{acs.EndAddr, acs.EndAddr}
 	code = fmt.Sprintf(`
     for i in 0 to %[1]d loop
       if apb_req.write = '1' then
@@ -219,5 +214,5 @@ func genConfigArrayNInRegMInEndReg(cfg *fn.Config, fmts *BlockEntityFormatters) 
 		itemsInEndReg-1, acs.ItemWidth, acs.StartBit, cfg.Name, (acs.RegCount-1)*itemsInReg,
 	)
 
-	fmts.RegistersAccess.add(addr, code)
+	fmts.RegistersAccess.add(addrRange(acs.EndAddr, acs.EndAddr, blk), code)
 }
