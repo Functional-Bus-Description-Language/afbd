@@ -4,17 +4,18 @@ import (
 	"fmt"
 
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/fn"
+	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/types"
 )
 
-func genStatus(blk *fn.Block, st *fn.Status, fmts *BlockEntityFormatters) {
+func genStatus(st *fn.Status, fmts *BlockEntityFormatters) {
 	if st.IsArray {
-		genStatusArray(blk, st, fmts)
+		genStatusArray(st, fmts)
 	} else {
-		genStatusSingle(blk, st, fmts)
+		genStatusSingle(st, fmts)
 	}
 }
 
-func genStatusArray(blk *fn.Block, st *fn.Status, fmts *BlockEntityFormatters) {
+func genStatusArray(st *fn.Status, fmts *BlockEntityFormatters) {
 	fmts.EntityFunctionalPorts += fmt.Sprintf(
 		";\n  %s_i : in slv_vector(%d downto 0)(%d downto 0)",
 		st.Name, st.Count-1, st.Width-1,
@@ -22,21 +23,21 @@ func genStatusArray(blk *fn.Block, st *fn.Status, fmts *BlockEntityFormatters) {
 
 	switch st.Access.Type {
 	case "ArrayOneReg":
-		genStatusArrayOneReg(blk, st, fmts)
+		genStatusArrayOneReg(st, fmts)
 	case "ArrayOneInReg":
-		genStatusArrayOneInReg(blk, st, fmts)
+		genStatusArrayOneInReg(st, fmts)
 	case "ArrayNInReg":
-		genStatusArrayNInReg(blk, st, fmts)
+		genStatusArrayNInReg(st, fmts)
 	case "ArrayNInRegMInEndReg":
-		genStatusArrayNInRegMInEndReg(blk, st, fmts)
+		genStatusArrayNInRegMInEndReg(st, fmts)
 	case "ArrayOneInNRegs":
-		genStatusArrayOneInNRegs(blk, st, fmts)
+		genStatusArrayOneInNRegs(st, fmts)
 	default:
 		panic("unimplemented")
 	}
 }
 
-func genStatusSingle(blk *fn.Block, st *fn.Status, fmts *BlockEntityFormatters) {
+func genStatusSingle(st *fn.Status, fmts *BlockEntityFormatters) {
 	fmts.EntityFunctionalPorts += fmt.Sprintf(
 		";\n  %s_i : in std_logic_vector(%d downto 0)",
 		st.Name, st.Width-1,
@@ -44,33 +45,33 @@ func genStatusSingle(blk *fn.Block, st *fn.Status, fmts *BlockEntityFormatters) 
 
 	switch st.Access.Type {
 	case "SingleOneReg":
-		genStatusSingleOneReg(blk, st, fmts)
+		genStatusSingleOneReg(st, fmts)
 	case "SingleNRegs":
-		genStatusSingleNRegs(blk, st, fmts)
+		genStatusSingleNRegs(st, fmts)
 	default:
 		panic("unimplemented")
 	}
 }
 
-func genStatusSingleOneReg(blk *fn.Block, st *fn.Status, fmts *BlockEntityFormatters) {
+func genStatusSingleOneReg(st *fn.Status, fmts *BlockEntityFormatters) {
 	acs := st.Access
 
 	code := fmt.Sprintf(
 		"    apb_com.rdata(%d downto %d) <= %s_i;\n",
 		acs.EndBit, acs.StartBit, st.Name,
 	)
-	fmts.RegistersAccess.add(addrRange(acs.StartAddr, acs.EndAddr, blk), code)
+	fmts.RegistersAccess.add(acs.AddrRange(), code)
 }
 
-func genStatusSingleNRegs(blk *fn.Block, st *fn.Status, fmts *BlockEntityFormatters) {
+func genStatusSingleNRegs(st *fn.Status, fmts *BlockEntityFormatters) {
 	if st.Atomic {
-		genStatusSingleNRegsAtomic(blk, st, fmts)
+		genStatusSingleNRegsAtomic(st, fmts)
 	} else {
-		genStatusSingleNRegsNonAtomic(blk, st, fmts)
+		genStatusSingleNRegsNonAtomic(st, fmts)
 	}
 }
 
-func genStatusSingleNRegsAtomic(blk *fn.Block, st *fn.Status, fmts *BlockEntityFormatters) {
+func genStatusSingleNRegsAtomic(st *fn.Status, fmts *BlockEntityFormatters) {
 	acs := st.Access
 	strategy := SeparateFirst
 	atomicShadowRange := [2]int64{st.Width - 1, acs.StartRegWidth}
@@ -97,11 +98,11 @@ func genStatusSingleNRegsAtomic(blk *fn.Block, st *fn.Status, fmts *BlockEntityF
 			)
 		}
 
-		fmts.RegistersAccess.add(c.addr.Shift(-blk.StartAddr()), code)
+		fmts.RegistersAccess.add(c.addr, code)
 	}
 }
 
-func genStatusSingleNRegsNonAtomic(blk *fn.Block, st *fn.Status, fmts *BlockEntityFormatters) {
+func genStatusSingleNRegsNonAtomic(st *fn.Status, fmts *BlockEntityFormatters) {
 	chunks := makeAccessChunksContinuous(st.Access, Compact)
 
 	for _, c := range chunks {
@@ -110,11 +111,11 @@ func genStatusSingleNRegsNonAtomic(blk *fn.Block, st *fn.Status, fmts *BlockEnti
 			c.endBit, c.startBit, st.Name, c.range_[0], c.range_[1],
 		)
 
-		fmts.RegistersAccess.add(c.addr.Shift(-blk.StartAddr()), code)
+		fmts.RegistersAccess.add(c.addr, code)
 	}
 }
 
-func genStatusArrayOneInReg(blk *fn.Block, st *fn.Status, fmts *BlockEntityFormatters) {
+func genStatusArrayOneInReg(st *fn.Status, fmts *BlockEntityFormatters) {
 	acs := st.Access
 
 	code := fmt.Sprintf(
@@ -123,12 +124,12 @@ func genStatusArrayOneInReg(blk *fn.Block, st *fn.Status, fmts *BlockEntityForma
 	)
 
 	fmts.RegistersAccess.add(
-		addrRange(acs.StartAddr, acs.StartAddr+acs.RegCount-1, blk),
+		types.SingleRange{Start: acs.StartAddr, End: acs.StartAddr + acs.RegCount - 1},
 		code,
 	)
 }
 
-func genStatusArrayOneReg(blk *fn.Block, st *fn.Status, fmts *BlockEntityFormatters) {
+func genStatusArrayOneReg(st *fn.Status, fmts *BlockEntityFormatters) {
 	acs := st.Access
 
 	code := fmt.Sprintf(`
@@ -138,10 +139,10 @@ func genStatusArrayOneReg(blk *fn.Block, st *fn.Status, fmts *BlockEntityFormatt
 		st.Count-1, acs.ItemWidth, acs.StartBit, st.Name,
 	)
 
-	fmts.RegistersAccess.add(addrRange(acs.StartAddr, acs.EndAddr, blk), code)
+	fmts.RegistersAccess.add(acs.AddrRange(), code)
 }
 
-func genStatusArrayNInReg(blk *fn.Block, st *fn.Status, fmts *BlockEntityFormatters) {
+func genStatusArrayNInReg(st *fn.Status, fmts *BlockEntityFormatters) {
 	acs := st.Access
 
 	itemsInReg := acs.RegWidth / acs.ItemWidth
@@ -153,10 +154,10 @@ func genStatusArrayNInReg(blk *fn.Block, st *fn.Status, fmts *BlockEntityFormatt
 		itemsInReg-1, acs.ItemWidth, acs.StartBit, st.Name, acs.StartAddr, itemsInReg,
 	)
 
-	fmts.RegistersAccess.add(addrRange(acs.StartAddr, acs.EndAddr, blk), code)
+	fmts.RegistersAccess.add(acs.AddrRange(), code)
 }
 
-func genStatusArrayNInRegMInEndReg(blk *fn.Block, st *fn.Status, fmts *BlockEntityFormatters) {
+func genStatusArrayNInRegMInEndReg(st *fn.Status, fmts *BlockEntityFormatters) {
 	acs := st.Access
 
 	itemsInReg := acs.RegWidth / acs.ItemWidth
@@ -168,7 +169,9 @@ func genStatusArrayNInRegMInEndReg(blk *fn.Block, st *fn.Status, fmts *BlockEnti
     end loop;`,
 		itemsInReg-1, acs.ItemWidth, acs.StartBit, st.Name, acs.StartAddr, itemsInReg,
 	)
-	fmts.RegistersAccess.add(addrRange(acs.StartAddr, acs.EndAddr-1, blk), code)
+	fmts.RegistersAccess.add(
+		types.SingleRange{Start: acs.StartAddr, End: acs.EndAddr - 1}, code,
+	)
 
 	code = fmt.Sprintf(`
     for i in 0 to %[1]d loop
@@ -177,18 +180,18 @@ func genStatusArrayNInRegMInEndReg(blk *fn.Block, st *fn.Status, fmts *BlockEnti
 		itemsInEndReg-1, acs.ItemWidth, acs.StartBit, st.Name, (acs.RegCount-1)*itemsInReg,
 	)
 
-	fmts.RegistersAccess.add(addrRange(acs.EndAddr, acs.EndAddr, blk), code)
+	fmts.RegistersAccess.add(types.SingleRange{Start: acs.EndAddr, End: acs.EndAddr}, code)
 }
 
-func genStatusArrayOneInNRegs(blk *fn.Block, st *fn.Status, fmts *BlockEntityFormatters) {
+func genStatusArrayOneInNRegs(st *fn.Status, fmts *BlockEntityFormatters) {
 	if st.Atomic {
 		panic("unimplemented")
 	} else {
-		genStatusArrayOneInNRegsNonAtomic(blk, st, fmts)
+		genStatusArrayOneInNRegsNonAtomic(st, fmts)
 	}
 }
 
-func genStatusArrayOneInNRegsNonAtomic(blk *fn.Block, st *fn.Status, fmts *BlockEntityFormatters) {
+func genStatusArrayOneInNRegsNonAtomic(st *fn.Status, fmts *BlockEntityFormatters) {
 	acs := st.Access
 
 	regsPerItem := acs.ItemWidth / acs.RegWidth
@@ -209,5 +212,5 @@ func genStatusArrayOneInNRegsNonAtomic(blk *fn.Block, st *fn.Status, fmts *Block
 		bite, regsPerItem-1, acs.EndBit, st.Name, idx, st.Width-1, lowerBound, upperBound,
 	)
 
-	fmts.RegistersAccess.add(addrRange(acs.StartAddr, acs.EndAddr, blk), code)
+	fmts.RegistersAccess.add(acs.AddrRange(), code)
 }

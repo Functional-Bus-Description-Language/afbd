@@ -82,106 +82,106 @@ class Block:
 
     def _gen_configs(self, block):
         for config in block["Configs"] or []:
-            c = self._gen_config(config)
+            c = self._gen_config(config, block['AddrSpace']['Start'])
             setattr(self, config["Name"], c)
 
-    def _gen_config(self, config):
+    def _gen_config(self, config, blk_addr):
         typ = config['Access']['Type']
         if typ == 'SingleOneReg':
-            return ConfigSingleOneReg(self.iface, config)
+            return ConfigSingleOneReg(self.iface, config, blk_addr)
         elif typ == 'SingleNRegs':
-            return ConfigSingleNRegs(self.iface, config)
+            return ConfigSingleNRegs(self.iface, config, blk_addr)
         elif typ == 'ArrayOneInReg':
-            return ConfigArrayOneInReg(self.iface, config)
+            return ConfigArrayOneInReg(self.iface, config, blk_addr)
         elif typ == 'ArrayOneReg':
-            return ConfigArrayOneReg(self.iface, config)
+            return ConfigArrayOneReg(self.iface, config, blk_addr)
         elif typ == 'ArrayNInReg':
-            return ConfigArrayNInReg(self.iface, config)
+            return ConfigArrayNInReg(self.iface, config, blk_addr)
         elif typ == 'ArrayNInRegMInEndReg':
-            return ConfigArrayNInRegMInEndReg(self.iface, config)
+            return ConfigArrayNInRegMInEndReg(self.iface, config, blk_addr)
         else:
             raise Exception(f"unimplemented for access type '{typ}'")
 
     def _gen_masks(self, block):
         for mask in block["Masks"] or []:
-            m = self._gen_mask(mask)
+            m = self._gen_mask(mask, block['AddrSpace']['Start'])
             setattr(self, mask["Name"], m)
 
-    def _gen_mask(self, mask):
+    def _gen_mask(self, mask, blk_addr):
         typ = mask['Access']['Type']
         if typ == 'SingleOneReg':
-            return MaskSingleOneReg(self.iface, mask)
+            return MaskSingleOneReg(self.iface, mask, blk_addr)
         elif typ == 'SingleNRegs':
-            return MaskSingleNRegs(self.iface, mask)
+            return MaskSingleNRegs(self.iface, mask, blk_addr)
         else:
             raise Exception(f"unimplemented for access type '{typ}'")
 
     def _gen_procs(self, block):
         for proc in block["Procs"] or []:
-            p = self._gen_proc(proc)
+            p = self._gen_proc(proc, block['AddrSpace']['Start'])
             setattr(self, proc["Name"], p)
 
-    def _gen_proc(self, proc):
+    def _gen_proc(self, proc, blk_addr):
         lp = 0 if proc['Params'] is None else len(proc['Params'])
         lr = 0 if proc['Returns'] is None else len(proc['Returns'])
         if lp == 0 and lr == 0:
-            return EmptyProc(self.iface, proc)
+            return EmptyProc(self.iface, proc, blk_addr)
         elif lp > 0 and lr == 0:
-            return ParamsProc(self.iface, proc)
+            return ParamsProc(self.iface, proc, blk_addr)
         elif lp == 0 and lr > 0:
-            return ReturnsProc(self.iface, proc)
+            return ReturnsProc(self.iface, proc, blk_addr)
         else:
-            return ParamsAndReturnsProc(self.iface, proc)
+            return ParamsAndReturnsProc(self.iface, proc, blk_addr)
 
     def _gen_statics(self, block):
         for static in block["Statics"] or []:
-            s = self._gen_static(static)
+            s = self._gen_static(static, block['AddrSpace']['Start'])
             setattr(self, static["Name"], s)
 
-    def _gen_static(self, static):
+    def _gen_static(self, static, blk_addr):
         typ = static['Access']['Type']
         if typ == 'SingleOneReg':
-            return StaticSingleOneReg(self.iface, static)
+            return StaticSingleOneReg(self.iface, static, blk_addr)
         elif typ == 'SingleNRegs':
-            return StaticSingleNRegs(self.iface, static)
+            return StaticSingleNRegs(self.iface, static, blk_addr)
         else:
             raise Exception(f"unimplemented for access type '{typ}'")
 
     def _gen_statuses(self, block):
         for status in block["Statuses"] or []:
-            s = self._gen_status(status)
+            s = self._gen_status(status, block['AddrSpace']['Start'])
             setattr(self, status["Name"], s)
 
-    def _gen_status(self, status):
+    def _gen_status(self, status, blk_addr):
         typ = status['Access']['Type']
         if typ == 'SingleOneReg':
-            return StatusSingleOneReg(self.iface, status)
+            return StatusSingleOneReg(self.iface, status, blk_addr)
         elif typ == 'SingleNRegs':
-            return StatusSingleNRegs(self.iface, status)
+            return StatusSingleNRegs(self.iface, status, blk_addr)
         elif typ == 'ArrayOneInReg':
-            return StatusArrayOneInReg(self.iface, status)
+            return StatusArrayOneInReg(self.iface, status, blk_addr)
         elif typ == 'ArrayOneInNRegs':
-            return StatusArrayOneInNRegs(self.iface, status)
+            return StatusArrayOneInNRegs(self.iface, status, blk_addr)
         elif typ == 'ArrayOneReg':
-            return StatusArrayOneReg(self.iface, status)
+            return StatusArrayOneReg(self.iface, status, blk_addr)
         elif typ == 'ArrayNInReg':
-            return StatusArrayNInReg(self.iface, status)
+            return StatusArrayNInReg(self.iface, status, blk_addr)
         elif typ == 'ArrayNInRegMInEndReg':
-            return StatusArrayNInRegMInEndReg(self.iface, status)
+            return StatusArrayNInRegMInEndReg(self.iface, status, blk_addr)
         else:
             raise Exception(f"unimplemented for access type '{typ}'")
 
     def _gen_streams(self, block):
         for stream in block["Streams"] or []:
-            s = self._gen_stream(stream)
+            s = self._gen_stream(stream, block['AddrSpace']['Start'])
             setattr(self, stream["Name"], s)
 
-    def _gen_stream(self, stream):
+    def _gen_stream(self, stream, blk_addr):
         lr = 0 if stream['Returns'] is None else len(stream['Returns'])
         if lr > 0:
-            return Upstream(self.iface, stream)
+            return Upstream(self.iface, stream, blk_addr)
         else:
-            return Downstream(self.iface, stream)
+            return Downstream(self.iface, stream, blk_addr)
 
 class Bus(Block):
     def __init__(self, iface, reg_file):
@@ -349,9 +349,9 @@ def create_mock_returns(buf_iface, returns):
 
         # TODO: Use gen_status functions here.
         if acs['Type'] == 'SingleOneReg':
-            r['Status'] = StatusSingleOneReg(buf_iface, status)
+            r['Status'] = StatusSingleOneReg(buf_iface, status, 0)
         elif acs['Type'] == 'SingleNRegs':
-            r['Status'] = StatusSingleNRegs(buf_iface, status)
+            r['Status'] = StatusSingleNRegs(buf_iface, status, 0)
         else:
             raise Exception(f"unimplemented for access type '{acs['Type']}'")
 
@@ -361,12 +361,12 @@ def create_mock_returns(buf_iface, returns):
 
 
 class EmptyProc:
-    def __init__(self, iface, proc):
+    def __init__(self, iface, proc, blk_addr):
         self.iface = iface
-        self.call_addr = proc['CallAddr']
+        self.call_addr = blk_addr + proc['CallAddr']
         self.delay = calc_delay(proc["Delay"])
         if self.delay is not None:
-            self.exit_addr = proc['ExitAddr']
+            self.exit_addr = blk_addr + proc['ExitAddr']
 
     def __call__(self):
         self.iface.write(self.call_addr, 0)
@@ -377,13 +377,13 @@ class EmptyProc:
 
 
 class ParamsProc:
-    def __init__(self, iface, proc):
+    def __init__(self, iface, proc, blk_addr):
         self.iface = iface
         self.params = proc['Params']
-        self.params_start_addr = self.params[0]['Access']['StartAddr']
+        self.params_start_addr = blk_addr + self.params[0]['Access']['StartAddr']
         self.delay = calc_delay(proc['Delay'])
         if self.delay is not None:
-            self.exit_addr = proc['ExitAddr']
+            self.exit_addr = blk_addr + proc['ExitAddr']
 
     def __call__(self, *args):
         assert len(args) == len(
@@ -499,11 +499,11 @@ class Static:
 
 
 class StatusSingleOneReg:
-    def __init__(self, iface, status):
+    def __init__(self, iface, status, blk_addr):
         self.iface = iface
 
         acs = status['Access']
-        self.addr = acs['StartAddr']
+        self.addr = blk_addr + acs['StartAddr']
         self.start_bit = acs['StartBit']
         self.mask = calc_mask((acs['EndBit'], acs['StartBit']))
         self.width = acs['EndBit'] - acs['StartBit'] + 1
@@ -513,14 +513,14 @@ class StatusSingleOneReg:
 
 
 class StaticSingleOneReg(Static, StatusSingleOneReg):
-    def __init__(self, iface, static):
+    def __init__(self, iface, static, blk_addr):
         Static.__init__(self, static)
-        StatusSingleOneReg.__init__(self, iface, static)
+        StatusSingleOneReg.__init__(self, iface, static, blk_addr)
 
 
 class ConfigSingleOneReg(StatusSingleOneReg):
-    def __init__(self, iface, config):
-        super().__init__(iface, config)
+    def __init__(self, iface, config, blk_addr):
+        super().__init__(iface, config, blk_addr)
 
     def write(self, data):
         assert 0 <= data < 2**self.width, "value overrange ({})".format(data)
@@ -547,8 +547,8 @@ class Mask:
 
 
 class MaskSingleOneReg(Mask, StatusSingleOneReg):
-    def __init__(self, iface, mask):
-        super().__init__(iface, mask)
+    def __init__(self, iface, mask, blk_addr):
+        super().__init__(iface, mask, blk_addr)
 
         self.block_width = mask['Access']['RegWidth']
 
@@ -612,11 +612,11 @@ class MaskSingleOneReg(Mask, StatusSingleOneReg):
 
 
 class StatusSingleNRegs:
-    def __init__(self, iface, status):
+    def __init__(self, iface, status, blk_addr):
         self.iface = iface
 
         acs = status['Access']
-        start_addr = acs['StartAddr']
+        start_addr = blk_addr + acs['StartAddr']
         self.addrs = list(range(start_addr, start_addr + acs['RegCount']))
         self.width = 0
         self.masks = []
@@ -649,8 +649,8 @@ class StatusSingleNRegs:
 
 
 class ConfigSingleNRegs(StatusSingleNRegs):
-    def __init__(self, iface, config):
-        super().__init__(iface, config)
+    def __init__(self, iface, config, blk_addr):
+        super().__init__(iface, config, blk_addr)
 
     def write(self, data):
         assert 0 <= data < 2**self.width, "value overrange ({})".format(data)
@@ -661,8 +661,8 @@ class ConfigSingleNRegs(StatusSingleNRegs):
 
 
 class MaskSingleNRegs(StatusSingleNRegs, Mask):
-    def __init__(self, iface, mask):
-        super().__init__(iface, mask)
+    def __init__(self, iface, mask, blk_addr):
+        super().__init__(iface, mask, blk_addr)
 
     def set(self, bits=None):
         bits = self._bits_to_iterable(bits)
@@ -738,17 +738,17 @@ class MaskSingleNRegs(StatusSingleNRegs, Mask):
 
 
 class StaticSingleNRegs(Static, StatusSingleNRegs):
-    def __init__(self, iface, static):
+    def __init__(self, iface, static, blk_addr):
         Static.__init__(self, static)
-        StatusSingleNRegs.__init__(self, iface, static)
+        StatusSingleNRegs.__init__(self, iface, static, blk_addr)
 
 
 class StatusArrayOneReg:
-    def __init__(self, iface, status):
+    def __init__(self, iface, status, blk_addr):
         self.iface = iface
 
         acs = status['Access']
-        self.addr = acs['StartAddr']
+        self.addr = blk_addr + acs['StartAddr']
         self.start_bit = acs['StartBit']
         self.item_count = acs['ItemCount']
         self.width = status['Width']
@@ -779,8 +779,8 @@ class StatusArrayOneReg:
 
 
 class ConfigArrayOneReg(StatusArrayOneReg):
-    def __init__(self, iface, config):
-        super().__init__(iface, config)
+    def __init__(self, iface, config, blk_addr):
+        super().__init__(iface, config, blk_addr)
 
     def write(self, data, offset=0):
         """offset - elements index offset, applied also when data is dictionary"""
@@ -818,11 +818,11 @@ class ConfigArrayOneReg(StatusArrayOneReg):
 
 
 class StatusArrayOneInReg:
-    def __init__(self, iface, status):
+    def __init__(self, iface, status, blk_addr):
         self.iface = iface
 
         acs = status['Access']
-        self.addr = acs['StartAddr']
+        self.addr = blk_addr + acs['StartAddr']
         self.mask = calc_mask((acs['EndBit'], acs['StartBit']))
         self.shift = acs['StartBit']
         self.item_count = acs['RegCount']
@@ -851,8 +851,8 @@ class StatusArrayOneInReg:
 
 
 class ConfigArrayOneInReg(StatusArrayOneInReg):
-    def __init__(self, iface, config):
-        super().__init__(iface, config)
+    def __init__(self, iface, config, blk_addr):
+        super().__init__(iface, config, blk_addr)
 
     def write(self, data, offset=0):
         """offset - elements index offset, applied also when data is dictionary"""
@@ -875,11 +875,11 @@ class ConfigArrayOneInReg(StatusArrayOneInReg):
 
 
 class StatusArrayNInReg:
-    def __init__(self, iface, status):
+    def __init__(self, iface, status, blk_addr):
         self.iface = iface
 
         acs = status['Access']
-        self.addr = acs['StartAddr']
+        self.addr = blk_addr + acs['StartAddr']
         self.start_bit = acs['StartBit']
         self.width = acs['ItemWidth']
         self.item_count = acs['ItemCount']
@@ -917,8 +917,8 @@ class StatusArrayNInReg:
 
 
 class ConfigArrayNInReg(StatusArrayNInReg):
-    def __init__(self, iface, config):
-        super().__init__(iface, config)
+    def __init__(self, iface, config, blk_addr):
+        super().__init__(iface, config, blk_addr)
 
     def write(self, data, offset=0):
         """offset - elements index offset, applied also when data is dictionary"""
@@ -949,21 +949,21 @@ class ConfigArrayNInReg(StatusArrayNInReg):
 
 
 class StatusArrayNInRegMInEndReg(StatusArrayNInReg):
-    def __init__(self, iface, status):
-        super().__init__(iface, status)
+    def __init__(self, iface, status, blk_addr):
+        super().__init__(iface, status, blk_addr)
 
 
 class ConfigArrayNInRegMInEndReg(ConfigArrayNInReg):
-    def __init__(self, iface, config):
-        super().__init__(iface, config)
+    def __init__(self, iface, config, blk_addr):
+        super().__init__(iface, config, blk_addr)
 
 
 class StatusArrayOneInNRegs:
-    def __init__(self, iface, status):
+    def __init__(self, iface, status, blk_addr):
         self.iface = iface
 
         acs = status['Access']
-        self.addr = acs['StartAddr']
+        self.addr = blk_addr + acs['StartAddr']
         self.item_count = acs['ItemCount']
         self.width = acs['ItemWidth']
         self.reg_count = acs['RegCount']
@@ -1024,9 +1024,9 @@ class StatusArrayOneInNRegs:
 
 
 class Upstream:
-    def __init__(self, iface, stream):
+    def __init__(self, iface, stream, blk_addr):
         self.iface = iface
-        self.addr = stream['Returns'][0]['Access']['StartAddr']
+        self.addr = blk_addr + stream['Returns'][0]['Access']['StartAddr']
         self.delay = calc_delay(stream['Delay'])
         self.buf_iface = _BufferIface()
         self.buf_size, self.returns = create_mock_returns(self.buf_iface, stream['Returns'])
@@ -1057,10 +1057,10 @@ class Upstream:
 
 
 class Downstream:
-    def __init__(self, iface, stream):
+    def __init__(self, iface, stream, blk_addr):
         self.iface = iface
         self.params = stream['Params']
-        self.addr = self.params[0]['Access']['StartAddr']
+        self.addr = blk_addr + self.params[0]['Access']['StartAddr']
         self.delay = calc_delay(stream['Delay'])
 
     def write(self, data):

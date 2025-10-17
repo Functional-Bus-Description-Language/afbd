@@ -6,19 +6,19 @@ import (
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/fn"
 )
 
-func genMask(blk *fn.Block, mask *fn.Mask, fmts *BlockEntityFormatters) {
+func genMask(mask *fn.Mask, fmts *BlockEntityFormatters) {
 	if mask.IsArray {
-		genMaskArray(blk, mask, fmts)
+		genMaskArray(mask, fmts)
 	} else {
-		genMaskSingle(blk, mask, fmts)
+		genMaskSingle(mask, fmts)
 	}
 }
 
-func genMaskArray(blk *fn.Block, mask *fn.Mask, fmts *BlockEntityFormatters) {
+func genMaskArray(mask *fn.Mask, fmts *BlockEntityFormatters) {
 	panic("unimplemented")
 }
 
-func genMaskSingle(blk *fn.Block, mask *fn.Mask, fmts *BlockEntityFormatters) {
+func genMaskSingle(mask *fn.Mask, fmts *BlockEntityFormatters) {
 	dflt := ""
 	if mask.InitValue != "" {
 		dflt = fmt.Sprintf(" := %s", mask.InitValue.Extend(mask.Width))
@@ -31,15 +31,15 @@ func genMaskSingle(blk *fn.Block, mask *fn.Mask, fmts *BlockEntityFormatters) {
 
 	switch mask.Access.Type {
 	case "SingleOneReg":
-		genMaskSingleOneReg(blk, mask, fmts)
+		genMaskSingleOneReg(mask, fmts)
 	case "SingleNRegs":
-		genMaskSingleNRegs(blk, mask, fmts)
+		genMaskSingleNRegs(mask, fmts)
 	default:
 		panic("unimplemented")
 	}
 }
 
-func genMaskSingleOneReg(blk *fn.Block, mask *fn.Mask, fmts *BlockEntityFormatters) {
+func genMaskSingleOneReg(mask *fn.Mask, fmts *BlockEntityFormatters) {
 	acs := mask.Access
 
 	code := fmt.Sprintf(`
@@ -50,18 +50,18 @@ func genMaskSingleOneReg(blk *fn.Block, mask *fn.Mask, fmts *BlockEntityFormatte
 		mask.Name, acs.EndBit, acs.StartBit,
 	)
 
-	fmts.RegistersAccess.add(addrRange(acs.StartAddr, acs.EndAddr, blk), code)
+	fmts.RegistersAccess.add(acs.AddrRange(), code)
 }
 
-func genMaskSingleNRegs(blk *fn.Block, mask *fn.Mask, fmts *BlockEntityFormatters) {
+func genMaskSingleNRegs(mask *fn.Mask, fmts *BlockEntityFormatters) {
 	if mask.Atomic {
-		genMaskSingleNRegsAtomic(blk, mask, fmts)
+		genMaskSingleNRegsAtomic(mask, fmts)
 	} else {
-		genMaskSingleNRegsNonAtomic(blk, mask, fmts)
+		genMaskSingleNRegsNonAtomic(mask, fmts)
 	}
 }
 
-func genMaskSingleNRegsAtomic(blk *fn.Block, mask *fn.Mask, fmts *BlockEntityFormatters) {
+func genMaskSingleNRegsAtomic(mask *fn.Mask, fmts *BlockEntityFormatters) {
 	acs := mask.Access
 	strategy := SeparateLast
 	atomicShadowRange := [2]int64{mask.Width - 1 - acs.EndRegWidth, 0}
@@ -95,11 +95,11 @@ func genMaskSingleNRegsAtomic(blk *fn.Block, mask *fn.Mask, fmts *BlockEntityFor
 			)
 		}
 
-		fmts.RegistersAccess.add(c.addr.Shift(-blk.StartAddr()), code)
+		fmts.RegistersAccess.add(c.addr, code)
 	}
 }
 
-func genMaskSingleNRegsNonAtomic(blk *fn.Block, mask *fn.Mask, fmts *BlockEntityFormatters) {
+func genMaskSingleNRegsNonAtomic(mask *fn.Mask, fmts *BlockEntityFormatters) {
 	acs := mask.Access
 	chunks := makeAccessChunksContinuous(acs, Compact)
 
@@ -112,6 +112,6 @@ func genMaskSingleNRegsNonAtomic(blk *fn.Block, mask *fn.Mask, fmts *BlockEntity
 			mask.Name, c.range_[0], c.range_[1], c.endBit, c.startBit,
 		)
 
-		fmts.RegistersAccess.add(c.addr.Shift(-blk.StartAddr()), code)
+		fmts.RegistersAccess.add(c.addr, code)
 	}
 }

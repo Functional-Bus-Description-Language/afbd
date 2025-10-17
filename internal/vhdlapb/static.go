@@ -6,15 +6,15 @@ import (
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/fn"
 )
 
-func genStatic(blk *fn.Block, st *fn.Static, fmts *BlockEntityFormatters) {
+func genStatic(st *fn.Static, fmts *BlockEntityFormatters) {
 	if st.IsArray {
 		panic("unimplemented")
 	} else {
-		genStaticSingle(blk, st, fmts)
+		genStaticSingle(st, fmts)
 	}
 }
 
-func genStaticSingle(blk *fn.Block, st *fn.Static, fmts *BlockEntityFormatters) {
+func genStaticSingle(st *fn.Static, fmts *BlockEntityFormatters) {
 	fmts.EntityFunctionalPorts += fmt.Sprintf(
 		";\n  %s_o : out std_logic_vector(%d downto 0) := %s",
 		st.Name, st.Width-1, string(st.InitValue),
@@ -22,18 +22,18 @@ func genStaticSingle(blk *fn.Block, st *fn.Static, fmts *BlockEntityFormatters) 
 
 	switch st.Access.Type {
 	case "SingleOneReg":
-		genStaticSingleOneReg(blk, st, fmts)
+		genStaticSingleOneReg(st, fmts)
 	default:
 		panic("unimplemented")
 	}
 }
 
-func genStaticSingleOneReg(blk *fn.Block, st *fn.Static, fmts *BlockEntityFormatters) {
+func genStaticSingleOneReg(st *fn.Static, fmts *BlockEntityFormatters) {
 	acs := st.Access
 
 	code := fmt.Sprintf(
 		"    apb_com.rdata(%d downto %d) <= %s; -- %s\n",
 		acs.EndBit, acs.StartBit, string(st.InitValue), st.Name,
 	)
-	fmts.RegistersAccess.add(addrRange(acs.StartAddr, acs.EndAddr, blk), code)
+	fmts.RegistersAccess.add(acs.AddrRange(), code)
 }

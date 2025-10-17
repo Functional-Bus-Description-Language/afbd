@@ -93,27 +93,27 @@ func genBlock(blk utils.Block, wg *sync.WaitGroup) {
 	}
 
 	for _, proc := range blk.Block.Procs {
-		genProc(blk.Block, proc, &fmts)
+		genProc(proc, &fmts)
 	}
 
 	for _, stream := range blk.Block.Streams {
-		genStream(blk.Block, stream, &fmts)
+		genStream(stream, &fmts)
 	}
 
 	for _, st := range blk.Block.Statics {
-		genStatic(blk.Block, st, &fmts)
+		genStatic(st, &fmts)
 	}
 
 	for _, st := range blk.Block.Statuses {
-		genStatus(blk.Block, st, &fmts)
+		genStatus(st, &fmts)
 	}
 
 	for _, cfg := range blk.Block.Configs {
-		genConfig(blk.Block, cfg, &fmts)
+		genConfig(cfg, &fmts)
 	}
 
 	for _, mask := range blk.Block.Masks {
-		genMask(blk.Block, mask, &fmts)
+		genMask(mask, &fmts)
 	}
 
 	filePath := path.Join(args.VhdlApb.Path, (blk.Name + ".vhd"))

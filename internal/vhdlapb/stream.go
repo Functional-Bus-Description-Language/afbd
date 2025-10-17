@@ -6,14 +6,14 @@ import (
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/fn"
 )
 
-func genStream(blk *fn.Block, stream *fn.Stream, fmts *BlockEntityFormatters) {
+func genStream(stream *fn.Stream, fmts *BlockEntityFormatters) {
 	genStreamType(stream, fmts)
 	genStreamPorts(stream, fmts)
 
 	if stream.IsUpstream() {
-		genUpstreamAccess(blk, stream, fmts)
+		genUpstreamAccess(stream, fmts)
 	} else {
-		genDownstreamAccess(blk, stream, fmts)
+		genDownstreamAccess(stream, fmts)
 	}
 
 	genStreamStrobe(stream, fmts)
@@ -65,7 +65,7 @@ func genStreamPorts(stream *fn.Stream, fmts *BlockEntityFormatters) {
 	fmts.EntityFunctionalPorts += s
 }
 
-func genUpstreamAccess(blk *fn.Block, stream *fn.Stream, fmts *BlockEntityFormatters) {
+func genUpstreamAccess(stream *fn.Stream, fmts *BlockEntityFormatters) {
 	for _, r := range stream.Returns {
 		switch acs := r.Access; acs.Type {
 		case "SingleOneReg":
@@ -74,7 +74,7 @@ func genUpstreamAccess(blk *fn.Block, stream *fn.Stream, fmts *BlockEntityFormat
 				acs.EndBit, acs.StartBit, stream.Name, r.Name,
 			)
 
-			fmts.RegistersAccess.add(addrRange(acs.StartAddr, acs.EndAddr, blk), code)
+			fmts.RegistersAccess.add(acs.AddrRange(), code)
 		case "SingleNRegs":
 			chunks := makeAccessChunksContinuous(acs, Compact)
 
@@ -84,7 +84,7 @@ func genUpstreamAccess(blk *fn.Block, stream *fn.Stream, fmts *BlockEntityFormat
 					stream.Name, r.Name, c.range_[0], c.range_[1], c.endBit, c.startBit,
 				)
 
-				fmts.RegistersAccess.add(c.addr.Shift(-blk.StartAddr()), code)
+				fmts.RegistersAccess.add(c.addr, code)
 			}
 		default:
 			panic("unimplemented")
@@ -92,7 +92,7 @@ func genUpstreamAccess(blk *fn.Block, stream *fn.Stream, fmts *BlockEntityFormat
 	}
 }
 
-func genDownstreamAccess(blk *fn.Block, stream *fn.Stream, fmts *BlockEntityFormatters) {
+func genDownstreamAccess(stream *fn.Stream, fmts *BlockEntityFormatters) {
 	for _, p := range stream.Params {
 		switch acs := p.Access; acs.Type {
 		case "SingleOneReg":
@@ -104,7 +104,7 @@ func genDownstreamAccess(blk *fn.Block, stream *fn.Stream, fmts *BlockEntityForm
 				stream.Name, p.Name, acs.EndBit, acs.StartBit,
 			)
 
-			fmts.RegistersAccess.add(addrRange(acs.StartAddr, acs.EndAddr, blk), code)
+			fmts.RegistersAccess.add(acs.AddrRange(), code)
 		case "SingleNRegs":
 			chunks := makeAccessChunksContinuous(acs, Compact)
 
@@ -117,7 +117,7 @@ func genDownstreamAccess(blk *fn.Block, stream *fn.Stream, fmts *BlockEntityForm
 					stream.Name, p.Name, c.range_[0], c.range_[1], c.endBit, c.startBit,
 				)
 
-				fmts.RegistersAccess.add(c.addr.Shift(-blk.StartAddr()), code)
+				fmts.RegistersAccess.add(c.addr, code)
 			}
 		default:
 			panic("unimplemented")
