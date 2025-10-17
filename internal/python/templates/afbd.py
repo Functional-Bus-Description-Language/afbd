@@ -193,9 +193,762 @@ class Bus(Block):
 
         super().__init__(iface, bus)
 
+#
+# Procs
+#
+
+class EmptyProc:
+    def __init__(self, iface, proc, blk_addr):
+        self.iface = iface
+        self.call_addr = blk_addr + proc['CallAddr']
+        self.delay = calc_delay(proc["Delay"])
+        if self.delay is not None:
+            self.exit_addr = blk_addr + proc['ExitAddr']
+
+    def __call__(self):
+        self.iface.write(self.call_addr, 0)
+        if self.delay is not None:
+            if self.delay != 0:
+                time.sleep(self.delay)
+            self.iface.read(self.exit_addr)
+
+
+class ParamsProc:
+    def __init__(self, iface, proc, blk_addr):
+        self.iface = iface
+        self.params = proc['Params']
+        self.params_start_addr = blk_addr + self.params[0]['Access']['StartAddr']
+        self.delay = calc_delay(proc['Delay'])
+        if self.delay is not None:
+            self.exit_addr = blk_addr + proc['ExitAddr']
+
+    def __call__(self, *args):
+        assert len(args) == len(
+            self.params
+        ), "{}() takes {} arguments but {} were given".format(
+            self.__name__, len(self.params), len(args)
+        )
+
+        buf = pack_params(self.params, *args)
+
+        if len(buf) == 1:
+            self.iface.write(self.params_start_addr, buf[0])
+        else:
+            self.iface.writeb(self.params_start_addr, buf)
+
+        if self.delay is not None:
+            if self.delay != 0:
+                time.sleep(self.delay)
+            self.iface.read(self.exit_addr)
+
+
+class ReturnsProc:
+    def __init__(self, iface, returns_start_addr, returns, delay, call_addr):
+        self.iface = iface
+        self.returns_start_addr = returns_start_addr
+        self.delay = delay
+        self.call_addr = call_addr
+
+        self.buf_iface = BufferIface()
+        self.buf_size, self.returns = create_mock_returns(
+            self.buf_iface, returns_start_addr, returns
+        )
+
+    def __call__(self):
+        if self.delay is not None:
+            self.iface.write(self.call_addr, 0)
+            if self.delay != 0:
+                time.sleep(self.delay)
+
+        if self.buf_size == 1:
+            buf = [self.iface.read(self.returns_start_addr)]
+        else:
+            buf = self.iface.readb(self.returns_start_addr, self.buf_size)
+
+        self.buf_iface.set_buf(buf)
+        tup = []  # List to allow append but must be cast to tuple.
+
+        for ret in self.returns:
+            # NOTE: Groups are not yet supported so it is safe to immediately append.
+            tup.append(ret['Status'].read())
+
+        return tuple(tup)
+
+
+class ParamsAndReturnsProc:
+    def __init__(self, iface, params_start_addr, params, returns_start_addr, returns, delay):
+        self.iface = iface
+
+        self.params_start_addr = params_start_addr
+        self.params = params
+
+        self.returns_start_addr = returns_start_addr
+        self.returns_buf_iface = BufferIface()
+        self.returns_buf_size, self.returns = create_mock_returns(
+            self.returns_buf_iface, returns_start_addr, returns
+        )
+
+        self.delay = delay
+
+    def __call__(self, *args):
+        assert len(args) == len(
+            self.params
+        ), "{}() takes {} arguments but {} were given".format(
+            self.__name__, len(self.params), len(args)
+        )
+
+        params_buf = pack_params(self.params, *args)
+        if len(params_buf) == 1:
+            self.iface.write(self.params_start_addr, params_buf[0])
+        else:
+            self.iface.writeb(self.params_start_addr, params_buf)
+
+        if self.delay is not None:
+            if self.delay != 0:
+                time.sleep(self.delay)
+
+        if self.returns_buf_size == 1:
+            returns_buf = [self.iface.read(self.returns_start_addr)]
+        else:
+            returns_buf = self.iface.readb(
+                self.returns_start_addr, self.returns_buf_size
+            )
+        self.returns_buf_iface.set_buf(returns_buf)
+        tup = []  # List to allow append but must be cast to tuple.
+        for ret in self.returns:
+            # NOTE: Groups are not yet supported so it is safe to immediately append.
+            tup.append(ret["Status"].read())
+
+        return tuple(tup)
 
 #
-# Utility functions
+# Statuses
+#
+
+class StatusSingleOneReg:
+    def __init__(self, iface, status, blk_addr):
+        self.iface = iface
+
+        acs = status['Access']
+        self.addr = blk_addr + acs['StartAddr']
+        self.start_bit = acs['StartBit']
+        self.mask = calc_mask((acs['EndBit'], acs['StartBit']))
+        self.width = acs['EndBit'] - acs['StartBit'] + 1
+
+    def read(self):
+        return (self.iface.read(self.addr) >> self.start_bit) & self.mask
+
+
+class StatusSingleNRegs:
+    def __init__(self, iface, status, blk_addr):
+        self.iface = iface
+
+        acs = status['Access']
+        start_addr = blk_addr + acs['StartAddr']
+        self.addrs = list(range(start_addr, start_addr + acs['RegCount']))
+        self.width = 0
+        self.masks = []
+        self.reg_shifts = []
+        self.data_shifts = []
+
+        for i in range(acs['RegCount']):
+            if i == 0:
+                self.masks.append(calc_mask((acs['RegWidth'] - 1, acs['StartBit'])))
+                self.reg_shifts.append(acs['StartBit'])
+                self.data_shifts.append(0)
+                self.width += acs['RegWidth'] - acs['StartBit']
+            else:
+                self.reg_shifts.append(0)
+                self.data_shifts.append(self.width)
+                if i == acs['RegCount'] - 1:
+                    self.masks.append(calc_mask((acs['EndBit'], 0)))
+                    self.width += acs['EndBit'] + 1
+                else:
+                    self.masks.append(calc_mask((acs['RegWidth'] - 1, 0)))
+                    self.width += acs['RegWidth']
+
+    def read(self):
+        data = 0
+        for i, a in enumerate(self.addrs):
+            data |= (
+                (self.iface.read(a) >> self.reg_shifts[i]) & self.masks[i]
+            ) << self.data_shifts[i]
+        return data
+
+
+class StatusArrayOneReg:
+    def __init__(self, iface, status, blk_addr):
+        self.iface = iface
+
+        acs = status['Access']
+        self.addr = blk_addr + acs['StartAddr']
+        self.start_bit = acs['StartBit']
+        self.item_count = acs['ItemCount']
+        self.width = status['Width']
+
+    def __len__(self):
+        return self.item_count
+
+    def read(self, idx=None):
+        reg = self.iface.read(self.addr)
+        mask = (1 << self.width) - 1
+
+        if type(idx) == int:
+            assert 0 <= idx < self.item_count
+            shift = self.start_bit + self.width * idx
+            return (reg >> shift) & mask
+        elif idx is None:
+            idx = tuple(range(0, self.item_count))
+
+        for i in idx:
+            assert 0 <= i < self.item_count
+
+        data = []
+        for i in idx:
+            shift = self.start_bit + self.width * i
+            data.append((reg >> shift) & mask)
+
+        return data
+
+
+class StatusArrayOneInReg:
+    def __init__(self, iface, status, blk_addr):
+        self.iface = iface
+
+        acs = status['Access']
+        self.addr = blk_addr + acs['StartAddr']
+        self.mask = calc_mask((acs['EndBit'], acs['StartBit']))
+        self.shift = acs['StartBit']
+        self.item_count = acs['RegCount']
+        self.width = status['Width']
+
+    def __len__(self):
+        return self.item_count
+
+    def read(self, idx=None):
+        if idx is None:
+            idx = tuple(range(0, self.item_count))
+            if self.item_count == 1:
+                return (self.iface.read(self.addr) >> self.shift) & self.mask
+            else:
+                buf = self.iface.readb(self.addr, self.item_count)
+                return [(data >> self.shift) & self.mask for data in buf]
+        elif type(idx) == int:
+            assert 0 <= idx < self.item_count
+            return (self.iface.read(self.addr + idx) >> self.shift) & self.mask
+        else:
+            for i in idx:
+                assert 0 <= i < self.item_count
+            return [
+                (self.iface.read(self.addr + i) >> self.shift) & self.mask for i in idx
+            ]
+
+
+class StatusArrayNInReg:
+    def __init__(self, iface, status, blk_addr):
+        self.iface = iface
+
+        acs = status['Access']
+        self.addr = blk_addr + acs['StartAddr']
+        self.start_bit = acs['StartBit']
+        self.width = acs['ItemWidth']
+        self.item_count = acs['ItemCount']
+        self.items_in_reg = int(acs['RegWidth'] / acs['ItemWidth'])
+        self.reg_count = acs['RegCount']
+
+    def __len__(self):
+        return self.item_count
+
+    def read(self, idx=None):
+        mask = (1 << self.width) - 1
+
+        if idx is None:
+            idx = tuple(range(0, self.item_count))
+            reg_idx = tuple(range(self.reg_count))
+        elif type(idx) == int:
+            assert 0 <= idx < self.item_count
+            reg_idx = idx // self.items_in_reg
+            shift = self.start_bit + self.width * (idx % self.items_in_reg)
+            return (self.iface.read(self.addr + reg_idx) >> shift) & mask
+        else:
+            reg_idx = set()
+            for i in idx:
+                assert 0 <= i < self.item_count
+                reg_idx.add(i // self.items_in_reg)
+
+        reg_data = {reg_i: self.iface.read(self.addr + reg_i) for reg_i in reg_idx}
+
+        data = []
+        for i in idx:
+            shift = self.start_bit + self.width * (i % self.items_in_reg)
+            data.append((reg_data[i // self.items_in_reg] >> shift) & mask)
+
+        return data
+
+
+class StatusArrayOneInNRegs:
+    def __init__(self, iface, status, blk_addr):
+        self.iface = iface
+
+        acs = status['Access']
+        self.addr = blk_addr + acs['StartAddr']
+        self.item_count = acs['ItemCount']
+        self.width = acs['ItemWidth']
+        self.reg_count = acs['RegCount']
+
+        if acs['ItemWidth'] % acs['RegWidth'] == 0:
+            self.regs_per_item = acs['ItemWidth'] % acs['RegWidth']
+        else:
+            self.regs_per_item = int(acs['ItemWidth'] / acs['RegWidth']) + 1
+
+        if acs['ItemWidth'] % acs['RegWidth'] == 0:
+            self.last_reg_mask = calc_mask((acs['RegWidth'] - 1, 0))
+        else:
+            self.last_reg_mask = calc_mask(
+                (acs['ItemWidth'] - (self.regs_per_item - 1) * acs['RegWidth'] - 1, 0)
+            )
+
+        self.block_width = acs['RegWidth']
+
+    def __len__(self):
+        return self.item_count
+
+    def _regs_to_data(self, buf):
+        assert len(buf) == self.regs_per_item
+        data = 0
+        for i, bite in enumerate(buf):
+            if i == len(buf) - 1:
+                data |= (bite & self.last_reg_mask) << (i * self.block_width)
+            else:
+                data |= bite << (i * self.block_width)
+        return data
+
+    def read(self, idx=None):
+        if idx is None:
+            buf = self.iface.readb(self.addr, self.reg_count)
+            data = []
+            for i in range(self.item_count):
+                data.append(
+                    self._regs_to_data(
+                        buf[i * self.regs_per_item : (i + 1) * self.regs_per_item]
+                    )
+                )
+            return data
+        elif type(idx) == int:
+            assert 0 <= idx < self.item_count
+            buf = self.iface.readb(
+                self.addr + idx * self.regs_per_item, self.regs_per_item
+            )
+            return self._regs_to_data(buf)
+        else:
+            data = []
+            for i in idx:
+                assert 0 <= i < self.item_count
+                buf = self.iface.readb(
+                    self.addr + i * self.regs_per_item, self.regs_per_item
+                )
+                data.append(self._regs_to_data(buf))
+            return data
+
+
+class StatusArrayNInRegMInEndReg(StatusArrayNInReg):
+    def __init__(self, iface, status, blk_addr):
+        super().__init__(iface, status, blk_addr)
+
+#
+# Statics
+#
+
+class Static:
+    def __init__(self, static):
+        self._value = calc_numeric_value(static['InitValue'])
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, v):
+        raise Exception(f"cannot set value of static element")
+
+
+class StaticSingleOneReg(Static, StatusSingleOneReg):
+    def __init__(self, iface, static, blk_addr):
+        Static.__init__(self, static)
+        StatusSingleOneReg.__init__(self, iface, static, blk_addr)
+
+
+class StaticSingleNRegs(Static, StatusSingleNRegs):
+    def __init__(self, iface, static, blk_addr):
+        Static.__init__(self, static)
+        StatusSingleNRegs.__init__(self, iface, static, blk_addr)
+
+#
+# Configs
+#
+
+class ConfigSingleOneReg(StatusSingleOneReg):
+    def __init__(self, iface, config, blk_addr):
+        super().__init__(iface, config, blk_addr)
+
+    def write(self, data):
+        assert 0 <= data < 2**self.width, "value overrange ({})".format(data)
+        self.iface.write(self.addr, data << self.start_bit)
+
+
+class ConfigSingleNRegs(StatusSingleNRegs):
+    def __init__(self, iface, config, blk_addr):
+        super().__init__(iface, config, blk_addr)
+
+    def write(self, data):
+        assert 0 <= data < 2**self.width, "value overrange ({})".format(data)
+        for i, a in enumerate(self.addrs):
+            self.iface.write(
+                a, ((data >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
+            )
+
+
+class ConfigArrayOneReg(StatusArrayOneReg):
+    def __init__(self, iface, config, blk_addr):
+        super().__init__(iface, config, blk_addr)
+
+    def write(self, data, offset=0):
+        """offset - elements index offset, applied also when data is dictionary"""
+        assert 0 <= len(data) <= self.item_count, f"invalid data len {len(data)}"
+
+        val = 0
+        mask = 0
+
+        if type(data) == dict:
+            for i, v in data.items():
+                assert type(i) == int, f"invalid index type {type(i)}"
+                assert i >= 0, f"negative index {i}"
+                assert i + offset < self.item_count, f"index overrange {i}"
+                assert (
+                    0 <= v < 2**self.width
+                ), f"data out of range, index {i}, value {v}"
+                shift = self.start_bit + (i + offset) * self.width
+                val |= v << shift
+                mask |= (2**self.width - 1) << shift
+        else:
+            assert len(data) + offset <= self.item_count
+
+            for i, v in enumerate(data):
+                assert (
+                    0 <= v < 2**self.width
+                ), f"data out of range, index {i}, value {v}"
+                shift = self.start_bit + (i + offset) * self.width
+                val |= v << shift
+                mask |= 2**self.width - 1 << shift
+
+        if len(data) == self.item_count:
+            self.iface.write(self.addr, val)
+        else:
+            self.iface.rmw(self.addr, val, mask)
+
+
+class ConfigArrayOneInReg(StatusArrayOneInReg):
+    def __init__(self, iface, config, blk_addr):
+        super().__init__(iface, config, blk_addr)
+
+    def write(self, data, offset=0):
+        """offset - elements index offset, applied also when data is dictionary"""
+        assert 0 <= len(data) <= self.item_count, f"invalid data len {len(data)}"
+
+        if type(data) == dict:
+            idxs = sorted(data.keys())
+            for idx in idxs:
+                self.iface.write(self.addr + offset + idx, data[idx] << self.shift)
+        else:
+            assert len(data) + offset <= self.item_count
+
+            if len(data) == 1:
+                self.iface.write(self.addr + offset, data[0] << self.shift)
+            else:
+                buf = []
+                for d in data:
+                    buf.append(d << self.shift)
+                self.iface.writeb(self.addr + offset, buf)
+
+
+class ConfigArrayNInReg(StatusArrayNInReg):
+    def __init__(self, iface, config, blk_addr):
+        super().__init__(iface, config, blk_addr)
+
+    def write(self, data, offset=0):
+        """offset - elements index offset, applied also when data is dictionary"""
+        assert 0 <= len(data) <= self.item_count, f"invalid data len {len(data)}"
+
+        regs = dict()
+
+        def add_to_regs(idx, val):
+            idx = idx + offset
+            assert idx <= self.item_count, f"index overrange {idx + offset}"
+            reg_idx = idx // self.items_in_reg
+            if reg_idx not in regs:
+                regs[reg_idx] = [0, 0]  # [value, mask]
+            shift = self.start_bit + (idx % self.items_in_reg) * self.width
+            regs[reg_idx][0] |= val << shift
+            regs[reg_idx][1] |= (2**self.width - 1) << shift
+
+        if type(data) == dict:
+            for idx, val in data.items():
+                add_to_regs(idx, val)
+        else:
+            for idx, val in enumerate(data):
+                add_to_regs(idx, val)
+
+        reg_idxs = sorted(regs.keys())
+        for idx in reg_idxs:
+            self.iface.rmw(self.addr + idx, regs[idx][0], regs[idx][1])
+
+
+class ConfigArrayNInRegMInEndReg(ConfigArrayNInReg):
+    def __init__(self, iface, config, blk_addr):
+        super().__init__(iface, config, blk_addr)
+
+#
+# Masks
+#
+
+class Mask:
+    def _bits_to_iterable(self, bits):
+        if bits == None:
+            return range(self.width)
+        elif type(bits) == int:
+            return (bits,)
+        return bits
+
+    def _assert_bits_in_range(self, bits):
+        for b in bits:
+            assert 0 <= b < self.width, "mask overrange"
+
+    def _assert_bits_to_update(self, bits):
+        if bits == None:
+            raise Exception("bits to update cannot have None value")
+        if type(bits).__name__ in ["list", "tuple", "range", "set"] and len(bits) == 0:
+            raise Exception("empty " + type(bits) + " of bits to update")
+
+
+class MaskSingleOneReg(Mask, StatusSingleOneReg):
+    def __init__(self, iface, mask, blk_addr):
+        super().__init__(iface, mask, blk_addr)
+
+        self.block_width = mask['Access']['RegWidth']
+
+    def set(self, bits=None):
+        bits = self._bits_to_iterable(bits)
+        self._assert_bits_in_range(bits)
+
+        mask = 0
+        for b in bits:
+            mask |= 1 << b
+
+        self.iface.write(self.addr, mask << self.start_bit)
+
+    def clear(self, bits=None):
+        bits = self._bits_to_iterable(bits)
+        self._assert_bits_in_range(bits)
+
+        mask = self.mask
+        for b in bits:
+            mask ^= 1 << b
+
+        self.iface.write(self.addr, mask << self.start_bit)
+
+    def toggle(self, bits=None):
+        bits = self._bits_to_iterable(bits)
+        self._assert_bits_in_range(bits)
+
+        xor_mask = 0
+        for b in bits:
+            xor_mask |= 1 << b
+        xor_mask <<= self.start_bit
+
+        mask = self.iface.read(self.addr) ^ xor_mask
+        self.iface.write(self.addr, mask)
+
+    def update_set(self, bits):
+        self._assert_bits_to_update(bits)
+
+        bits = self._bits_to_iterable(bits)
+        self._assert_bits_in_range(bits)
+
+        mask = 0
+        for b in bits:
+            mask |= 1 << b
+
+        mask = self.iface.read(self.addr) | (mask << self.start_bit)
+        self.iface.write(self.addr, mask)
+
+    def update_clear(self, bits):
+        self._assert_bits_to_update(bits)
+
+        bits = self._bits_to_iterable(bits)
+        self._assert_bits_in_range(bits)
+
+        mask = 2**self.block_width - 1
+        for b in bits:
+            mask ^= 1 << b
+
+        mask = self.iface.read(self.addr) & (mask << self.start_bit)
+        self.iface.write(self.addr, mask)
+
+
+class MaskSingleNRegs(StatusSingleNRegs, Mask):
+    def __init__(self, iface, mask, blk_addr):
+        super().__init__(iface, mask, blk_addr)
+
+    def set(self, bits=None):
+        bits = self._bits_to_iterable(bits)
+        self._assert_bits_in_range(bits)
+
+        mask = 0
+        for b in bits:
+            mask |= 1 << b
+
+        for i, a in enumerate(self.addrs):
+            self.iface.write(
+                a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
+            )
+
+    def clear(self, bits=None):
+        bits = self._bits_to_iterable(bits)
+        self._assert_bits_in_range(bits)
+
+        mask = self.mask
+        for b in bits:
+            mask ^= 1 << b
+
+        for i, a in enumerate(self.addrs):
+            self.iface.write(
+                a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
+            )
+
+    def update_set(self, bits):
+        self._assert_bits_to_update(bits)
+
+        bits = self._bits_to_iterable(bits)
+        self._assert_bits_in_range(bits)
+
+        mask = 0
+        for b in bits:
+            mask |= 1 << b
+
+        mask |= self.read()
+        for i, a in enumerate(self.addrs):
+            self.iface.write(
+                a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
+            )
+
+    def update_clear(self, bits):
+        self._assert_bits_to_update(bits)
+
+        bits = self._bits_to_iterable(bits)
+        self._assert_bits_in_range(bits)
+
+        mask = 2**self.width - 1
+        for b in bits:
+            mask ^= 1 << b
+
+        mask &= self.read()
+        for i, a in enumerate(self.addrs):
+            self.iface.write(
+                a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
+            )
+
+    def toggle(self, bits=None):
+        bits = self._bits_to_iterable(bits)
+        self._assert_bits_in_range(bits)
+
+        mask = 0
+        for b in bits:
+            mask |= 1 << b
+
+        mask ^= self.read()
+        for i, a in enumerate(self.addrs):
+            self.iface.write(
+                a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
+            )
+
+#
+# Streams
+#
+
+class Upstream:
+    def __init__(self, iface, stream, blk_addr):
+        self.iface = iface
+        self.addr = blk_addr + stream['Returns'][0]['Access']['StartAddr']
+        self.delay = calc_delay(stream['Delay'])
+        self.buf_iface = BufferIface()
+        self.buf_size, self.returns = create_mock_returns(self.buf_iface, stream['Returns'])
+
+    def read(self, n):
+        """
+        Read the stream n times.
+        Read returns a tuple of tuples. Grouped returns are returned as dictionary (not yet supported).
+        Non grouped returns are returned as values within tuple.
+        """
+        if self.buf_size == 1:
+            read_data = [[x] for x in self.iface.cread(self.addr, n)]
+        else:
+            read_data = self.iface.creadb(self.addr, self.buf_size, n)
+
+        data = []
+        for buf in read_data:
+            self.buf_iface.set_buf(buf)
+            tup = []  # List to allow append but must be cast to tuple.
+
+            for ret in self.returns:
+                # NOTE: Groups are not yet supported so it is safe to immediately append.
+                tup.append(ret["Status"].read())
+
+            data.append(tuple(tup))
+
+        return tuple(data)
+
+
+class Downstream:
+    def __init__(self, iface, stream, blk_addr):
+        self.iface = iface
+        self.params = stream['Params']
+        self.addr = blk_addr + self.params[0]['Access']['StartAddr']
+        self.delay = calc_delay(stream['Delay'])
+
+    def write(self, data):
+        wbuf = []  # Write buffer
+        args_in_one_reg = False  # All arguments occupy one register
+
+        for args in data:
+            assert len(args) == len(
+                self.params
+            ), f"invalid number of arguments {len(args)}, want {len(self.params)}"
+
+            buf = pack_params(self.params, *args)
+            if len(buf) == 1:
+                args_in_one_reg = True
+                wbuf.append(buf[0])
+            else:
+                wbuf.append(buf)
+
+        if self.delay is None:
+            if args_in_one_reg:
+                self.iface.cwrite(self.addr, wbuf)
+            else:
+                self.iface.cwriteb(self.addr, wbuf)
+        else:
+            for i, val in enumerate(wbuf):
+                if args_in_one_reg:
+                    self.iface.write(self.addr, val)
+                else:
+                    self.iface.writeb(self.addr, buf)
+
+                if i < len(wbuf) - 1:
+                    time.sleep(self.delay)
+
+
+#
+# Utilities
 #
 
 def calc_mask(m):
@@ -219,9 +972,9 @@ def calc_numeric_value(v):
         v = "0" + v
     return int(v, 0) # base=0, let Python detect the prefix automatically
 
-class _BufferIface:
+class BufferIface:
     """
-    _BufferIface is the internal interface used for reading/writing internal buffer
+    BufferIface is the internal interface used for reading/writing internal buffer
     (after reading)/(before writing) the target buffer. It is very useful
     as it allows treating proc or stream params/returns as configs/statuses.
     """
@@ -358,738 +1111,3 @@ def create_mock_returns(buf_iface, returns):
         rets.append(r)
 
     return buf_size, rets
-
-
-class EmptyProc:
-    def __init__(self, iface, proc, blk_addr):
-        self.iface = iface
-        self.call_addr = blk_addr + proc['CallAddr']
-        self.delay = calc_delay(proc["Delay"])
-        if self.delay is not None:
-            self.exit_addr = blk_addr + proc['ExitAddr']
-
-    def __call__(self):
-        self.iface.write(self.call_addr, 0)
-        if self.delay is not None:
-            if self.delay != 0:
-                time.sleep(self.delay)
-            self.iface.read(self.exit_addr)
-
-
-class ParamsProc:
-    def __init__(self, iface, proc, blk_addr):
-        self.iface = iface
-        self.params = proc['Params']
-        self.params_start_addr = blk_addr + self.params[0]['Access']['StartAddr']
-        self.delay = calc_delay(proc['Delay'])
-        if self.delay is not None:
-            self.exit_addr = blk_addr + proc['ExitAddr']
-
-    def __call__(self, *args):
-        assert len(args) == len(
-            self.params
-        ), "{}() takes {} arguments but {} were given".format(
-            self.__name__, len(self.params), len(args)
-        )
-
-        buf = pack_params(self.params, *args)
-
-        if len(buf) == 1:
-            self.iface.write(self.params_start_addr, buf[0])
-        else:
-            self.iface.writeb(self.params_start_addr, buf)
-
-        if self.delay is not None:
-            if self.delay != 0:
-                time.sleep(self.delay)
-            self.iface.read(self.exit_addr)
-
-
-class ReturnsProc:
-    def __init__(self, iface, returns_start_addr, returns, delay, call_addr):
-        self.iface = iface
-        self.returns_start_addr = returns_start_addr
-        self.delay = delay
-        self.call_addr = call_addr
-
-        self.buf_iface = _BufferIface()
-        self.buf_size, self.returns = create_mock_returns(
-            self.buf_iface, returns_start_addr, returns
-        )
-
-    def __call__(self):
-        if self.delay is not None:
-            self.iface.write(self.call_addr, 0)
-            if self.delay != 0:
-                time.sleep(self.delay)
-
-        if self.buf_size == 1:
-            buf = [self.iface.read(self.returns_start_addr)]
-        else:
-            buf = self.iface.readb(self.returns_start_addr, self.buf_size)
-
-        self.buf_iface.set_buf(buf)
-        tup = []  # List to allow append but must be cast to tuple.
-
-        for ret in self.returns:
-            # NOTE: Groups are not yet supported so it is safe to immediately append.
-            tup.append(ret['Status'].read())
-
-        return tuple(tup)
-
-
-class ParamsAndReturnsProc:
-    def __init__(self, iface, params_start_addr, params, returns_start_addr, returns, delay):
-        self.iface = iface
-
-        self.params_start_addr = params_start_addr
-        self.params = params
-
-        self.returns_start_addr = returns_start_addr
-        self.returns_buf_iface = _BufferIface()
-        self.returns_buf_size, self.returns = create_mock_returns(
-            self.returns_buf_iface, returns_start_addr, returns
-        )
-
-        self.delay = delay
-
-    def __call__(self, *args):
-        assert len(args) == len(
-            self.params
-        ), "{}() takes {} arguments but {} were given".format(
-            self.__name__, len(self.params), len(args)
-        )
-
-        params_buf = pack_params(self.params, *args)
-        if len(params_buf) == 1:
-            self.iface.write(self.params_start_addr, params_buf[0])
-        else:
-            self.iface.writeb(self.params_start_addr, params_buf)
-
-        if self.delay is not None:
-            if self.delay != 0:
-                time.sleep(self.delay)
-
-        if self.returns_buf_size == 1:
-            returns_buf = [self.iface.read(self.returns_start_addr)]
-        else:
-            returns_buf = self.iface.readb(
-                self.returns_start_addr, self.returns_buf_size
-            )
-        self.returns_buf_iface.set_buf(returns_buf)
-        tup = []  # List to allow append but must be cast to tuple.
-        for ret in self.returns:
-            # NOTE: Groups are not yet supported so it is safe to immediately append.
-            tup.append(ret["Status"].read())
-
-        return tuple(tup)
-
-
-class Static:
-    def __init__(self, static):
-        self._value = calc_numeric_value(static['InitValue'])
-
-    @property
-    def value(self):
-        return self._value
-
-    @value.setter
-    def value(self, v):
-        raise Exception(f"cannot set value of static element")
-
-
-class StatusSingleOneReg:
-    def __init__(self, iface, status, blk_addr):
-        self.iface = iface
-
-        acs = status['Access']
-        self.addr = blk_addr + acs['StartAddr']
-        self.start_bit = acs['StartBit']
-        self.mask = calc_mask((acs['EndBit'], acs['StartBit']))
-        self.width = acs['EndBit'] - acs['StartBit'] + 1
-
-    def read(self):
-        return (self.iface.read(self.addr) >> self.start_bit) & self.mask
-
-
-class StaticSingleOneReg(Static, StatusSingleOneReg):
-    def __init__(self, iface, static, blk_addr):
-        Static.__init__(self, static)
-        StatusSingleOneReg.__init__(self, iface, static, blk_addr)
-
-
-class ConfigSingleOneReg(StatusSingleOneReg):
-    def __init__(self, iface, config, blk_addr):
-        super().__init__(iface, config, blk_addr)
-
-    def write(self, data):
-        assert 0 <= data < 2**self.width, "value overrange ({})".format(data)
-        self.iface.write(self.addr, data << self.start_bit)
-
-
-class Mask:
-    def _bits_to_iterable(self, bits):
-        if bits == None:
-            return range(self.width)
-        elif type(bits) == int:
-            return (bits,)
-        return bits
-
-    def _assert_bits_in_range(self, bits):
-        for b in bits:
-            assert 0 <= b < self.width, "mask overrange"
-
-    def _assert_bits_to_update(self, bits):
-        if bits == None:
-            raise Exception("bits to update cannot have None value")
-        if type(bits).__name__ in ["list", "tuple", "range", "set"] and len(bits) == 0:
-            raise Exception("empty " + type(bits) + " of bits to update")
-
-
-class MaskSingleOneReg(Mask, StatusSingleOneReg):
-    def __init__(self, iface, mask, blk_addr):
-        super().__init__(iface, mask, blk_addr)
-
-        self.block_width = mask['Access']['RegWidth']
-
-    def set(self, bits=None):
-        bits = self._bits_to_iterable(bits)
-        self._assert_bits_in_range(bits)
-
-        mask = 0
-        for b in bits:
-            mask |= 1 << b
-
-        self.iface.write(self.addr, mask << self.start_bit)
-
-    def clear(self, bits=None):
-        bits = self._bits_to_iterable(bits)
-        self._assert_bits_in_range(bits)
-
-        mask = self.mask
-        for b in bits:
-            mask ^= 1 << b
-
-        self.iface.write(self.addr, mask << self.start_bit)
-
-    def toggle(self, bits=None):
-        bits = self._bits_to_iterable(bits)
-        self._assert_bits_in_range(bits)
-
-        xor_mask = 0
-        for b in bits:
-            xor_mask |= 1 << b
-        xor_mask <<= self.start_bit
-
-        mask = self.iface.read(self.addr) ^ xor_mask
-        self.iface.write(self.addr, mask)
-
-    def update_set(self, bits):
-        self._assert_bits_to_update(bits)
-
-        bits = self._bits_to_iterable(bits)
-        self._assert_bits_in_range(bits)
-
-        mask = 0
-        for b in bits:
-            mask |= 1 << b
-
-        mask = self.iface.read(self.addr) | (mask << self.start_bit)
-        self.iface.write(self.addr, mask)
-
-    def update_clear(self, bits):
-        self._assert_bits_to_update(bits)
-
-        bits = self._bits_to_iterable(bits)
-        self._assert_bits_in_range(bits)
-
-        mask = 2**self.block_width - 1
-        for b in bits:
-            mask ^= 1 << b
-
-        mask = self.iface.read(self.addr) & (mask << self.start_bit)
-        self.iface.write(self.addr, mask)
-
-
-class StatusSingleNRegs:
-    def __init__(self, iface, status, blk_addr):
-        self.iface = iface
-
-        acs = status['Access']
-        start_addr = blk_addr + acs['StartAddr']
-        self.addrs = list(range(start_addr, start_addr + acs['RegCount']))
-        self.width = 0
-        self.masks = []
-        self.reg_shifts = []
-        self.data_shifts = []
-
-        for i in range(acs['RegCount']):
-            if i == 0:
-                self.masks.append(calc_mask((acs['RegWidth'] - 1, acs['StartBit'])))
-                self.reg_shifts.append(acs['StartBit'])
-                self.data_shifts.append(0)
-                self.width += acs['RegWidth'] - acs['StartBit']
-            else:
-                self.reg_shifts.append(0)
-                self.data_shifts.append(self.width)
-                if i == acs['RegCount'] - 1:
-                    self.masks.append(calc_mask((acs['EndBit'], 0)))
-                    self.width += acs['EndBit'] + 1
-                else:
-                    self.masks.append(calc_mask((acs['RegWidth'] - 1, 0)))
-                    self.width += acs['RegWidth']
-
-    def read(self):
-        data = 0
-        for i, a in enumerate(self.addrs):
-            data |= (
-                (self.iface.read(a) >> self.reg_shifts[i]) & self.masks[i]
-            ) << self.data_shifts[i]
-        return data
-
-
-class ConfigSingleNRegs(StatusSingleNRegs):
-    def __init__(self, iface, config, blk_addr):
-        super().__init__(iface, config, blk_addr)
-
-    def write(self, data):
-        assert 0 <= data < 2**self.width, "value overrange ({})".format(data)
-        for i, a in enumerate(self.addrs):
-            self.iface.write(
-                a, ((data >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
-            )
-
-
-class MaskSingleNRegs(StatusSingleNRegs, Mask):
-    def __init__(self, iface, mask, blk_addr):
-        super().__init__(iface, mask, blk_addr)
-
-    def set(self, bits=None):
-        bits = self._bits_to_iterable(bits)
-        self._assert_bits_in_range(bits)
-
-        mask = 0
-        for b in bits:
-            mask |= 1 << b
-
-        for i, a in enumerate(self.addrs):
-            self.iface.write(
-                a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
-            )
-
-    def clear(self, bits=None):
-        bits = self._bits_to_iterable(bits)
-        self._assert_bits_in_range(bits)
-
-        mask = self.mask
-        for b in bits:
-            mask ^= 1 << b
-
-        for i, a in enumerate(self.addrs):
-            self.iface.write(
-                a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
-            )
-
-    def update_set(self, bits):
-        self._assert_bits_to_update(bits)
-
-        bits = self._bits_to_iterable(bits)
-        self._assert_bits_in_range(bits)
-
-        mask = 0
-        for b in bits:
-            mask |= 1 << b
-
-        mask |= self.read()
-        for i, a in enumerate(self.addrs):
-            self.iface.write(
-                a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
-            )
-
-    def update_clear(self, bits):
-        self._assert_bits_to_update(bits)
-
-        bits = self._bits_to_iterable(bits)
-        self._assert_bits_in_range(bits)
-
-        mask = 2**self.width - 1
-        for b in bits:
-            mask ^= 1 << b
-
-        mask &= self.read()
-        for i, a in enumerate(self.addrs):
-            self.iface.write(
-                a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
-            )
-
-    def toggle(self, bits=None):
-        bits = self._bits_to_iterable(bits)
-        self._assert_bits_in_range(bits)
-
-        mask = 0
-        for b in bits:
-            mask |= 1 << b
-
-        mask ^= self.read()
-        for i, a in enumerate(self.addrs):
-            self.iface.write(
-                a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
-            )
-
-
-class StaticSingleNRegs(Static, StatusSingleNRegs):
-    def __init__(self, iface, static, blk_addr):
-        Static.__init__(self, static)
-        StatusSingleNRegs.__init__(self, iface, static, blk_addr)
-
-
-class StatusArrayOneReg:
-    def __init__(self, iface, status, blk_addr):
-        self.iface = iface
-
-        acs = status['Access']
-        self.addr = blk_addr + acs['StartAddr']
-        self.start_bit = acs['StartBit']
-        self.item_count = acs['ItemCount']
-        self.width = status['Width']
-
-    def __len__(self):
-        return self.item_count
-
-    def read(self, idx=None):
-        reg = self.iface.read(self.addr)
-        mask = (1 << self.width) - 1
-
-        if type(idx) == int:
-            assert 0 <= idx < self.item_count
-            shift = self.start_bit + self.width * idx
-            return (reg >> shift) & mask
-        elif idx is None:
-            idx = tuple(range(0, self.item_count))
-
-        for i in idx:
-            assert 0 <= i < self.item_count
-
-        data = []
-        for i in idx:
-            shift = self.start_bit + self.width * i
-            data.append((reg >> shift) & mask)
-
-        return data
-
-
-class ConfigArrayOneReg(StatusArrayOneReg):
-    def __init__(self, iface, config, blk_addr):
-        super().__init__(iface, config, blk_addr)
-
-    def write(self, data, offset=0):
-        """offset - elements index offset, applied also when data is dictionary"""
-        assert 0 <= len(data) <= self.item_count, f"invalid data len {len(data)}"
-
-        val = 0
-        mask = 0
-
-        if type(data) == dict:
-            for i, v in data.items():
-                assert type(i) == int, f"invalid index type {type(i)}"
-                assert i >= 0, f"negative index {i}"
-                assert i + offset < self.item_count, f"index overrange {i}"
-                assert (
-                    0 <= v < 2**self.width
-                ), f"data out of range, index {i}, value {v}"
-                shift = self.start_bit + (i + offset) * self.width
-                val |= v << shift
-                mask |= (2**self.width - 1) << shift
-        else:
-            assert len(data) + offset <= self.item_count
-
-            for i, v in enumerate(data):
-                assert (
-                    0 <= v < 2**self.width
-                ), f"data out of range, index {i}, value {v}"
-                shift = self.start_bit + (i + offset) * self.width
-                val |= v << shift
-                mask |= 2**self.width - 1 << shift
-
-        if len(data) == self.item_count:
-            self.iface.write(self.addr, val)
-        else:
-            self.iface.rmw(self.addr, val, mask)
-
-
-class StatusArrayOneInReg:
-    def __init__(self, iface, status, blk_addr):
-        self.iface = iface
-
-        acs = status['Access']
-        self.addr = blk_addr + acs['StartAddr']
-        self.mask = calc_mask((acs['EndBit'], acs['StartBit']))
-        self.shift = acs['StartBit']
-        self.item_count = acs['RegCount']
-        self.width = status['Width']
-
-    def __len__(self):
-        return self.item_count
-
-    def read(self, idx=None):
-        if idx is None:
-            idx = tuple(range(0, self.item_count))
-            if self.item_count == 1:
-                return (self.iface.read(self.addr) >> self.shift) & self.mask
-            else:
-                buf = self.iface.readb(self.addr, self.item_count)
-                return [(data >> self.shift) & self.mask for data in buf]
-        elif type(idx) == int:
-            assert 0 <= idx < self.item_count
-            return (self.iface.read(self.addr + idx) >> self.shift) & self.mask
-        else:
-            for i in idx:
-                assert 0 <= i < self.item_count
-            return [
-                (self.iface.read(self.addr + i) >> self.shift) & self.mask for i in idx
-            ]
-
-
-class ConfigArrayOneInReg(StatusArrayOneInReg):
-    def __init__(self, iface, config, blk_addr):
-        super().__init__(iface, config, blk_addr)
-
-    def write(self, data, offset=0):
-        """offset - elements index offset, applied also when data is dictionary"""
-        assert 0 <= len(data) <= self.item_count, f"invalid data len {len(data)}"
-
-        if type(data) == dict:
-            idxs = sorted(data.keys())
-            for idx in idxs:
-                self.iface.write(self.addr + offset + idx, data[idx] << self.shift)
-        else:
-            assert len(data) + offset <= self.item_count
-
-            if len(data) == 1:
-                self.iface.write(self.addr + offset, data[0] << self.shift)
-            else:
-                buf = []
-                for d in data:
-                    buf.append(d << self.shift)
-                self.iface.writeb(self.addr + offset, buf)
-
-
-class StatusArrayNInReg:
-    def __init__(self, iface, status, blk_addr):
-        self.iface = iface
-
-        acs = status['Access']
-        self.addr = blk_addr + acs['StartAddr']
-        self.start_bit = acs['StartBit']
-        self.width = acs['ItemWidth']
-        self.item_count = acs['ItemCount']
-        self.items_in_reg = int(acs['RegWidth'] / acs['ItemWidth'])
-        self.reg_count = acs['RegCount']
-
-    def __len__(self):
-        return self.item_count
-
-    def read(self, idx=None):
-        mask = (1 << self.width) - 1
-
-        if idx is None:
-            idx = tuple(range(0, self.item_count))
-            reg_idx = tuple(range(self.reg_count))
-        elif type(idx) == int:
-            assert 0 <= idx < self.item_count
-            reg_idx = idx // self.items_in_reg
-            shift = self.start_bit + self.width * (idx % self.items_in_reg)
-            return (self.iface.read(self.addr + reg_idx) >> shift) & mask
-        else:
-            reg_idx = set()
-            for i in idx:
-                assert 0 <= i < self.item_count
-                reg_idx.add(i // self.items_in_reg)
-
-        reg_data = {reg_i: self.iface.read(self.addr + reg_i) for reg_i in reg_idx}
-
-        data = []
-        for i in idx:
-            shift = self.start_bit + self.width * (i % self.items_in_reg)
-            data.append((reg_data[i // self.items_in_reg] >> shift) & mask)
-
-        return data
-
-
-class ConfigArrayNInReg(StatusArrayNInReg):
-    def __init__(self, iface, config, blk_addr):
-        super().__init__(iface, config, blk_addr)
-
-    def write(self, data, offset=0):
-        """offset - elements index offset, applied also when data is dictionary"""
-        assert 0 <= len(data) <= self.item_count, f"invalid data len {len(data)}"
-
-        regs = dict()
-
-        def add_to_regs(idx, val):
-            idx = idx + offset
-            assert idx <= self.item_count, f"index overrange {idx + offset}"
-            reg_idx = idx // self.items_in_reg
-            if reg_idx not in regs:
-                regs[reg_idx] = [0, 0]  # [value, mask]
-            shift = self.start_bit + (idx % self.items_in_reg) * self.width
-            regs[reg_idx][0] |= val << shift
-            regs[reg_idx][1] |= (2**self.width - 1) << shift
-
-        if type(data) == dict:
-            for idx, val in data.items():
-                add_to_regs(idx, val)
-        else:
-            for idx, val in enumerate(data):
-                add_to_regs(idx, val)
-
-        reg_idxs = sorted(regs.keys())
-        for idx in reg_idxs:
-            self.iface.rmw(self.addr + idx, regs[idx][0], regs[idx][1])
-
-
-class StatusArrayNInRegMInEndReg(StatusArrayNInReg):
-    def __init__(self, iface, status, blk_addr):
-        super().__init__(iface, status, blk_addr)
-
-
-class ConfigArrayNInRegMInEndReg(ConfigArrayNInReg):
-    def __init__(self, iface, config, blk_addr):
-        super().__init__(iface, config, blk_addr)
-
-
-class StatusArrayOneInNRegs:
-    def __init__(self, iface, status, blk_addr):
-        self.iface = iface
-
-        acs = status['Access']
-        self.addr = blk_addr + acs['StartAddr']
-        self.item_count = acs['ItemCount']
-        self.width = acs['ItemWidth']
-        self.reg_count = acs['RegCount']
-
-        if acs['ItemWidth'] % acs['RegWidth'] == 0:
-            self.regs_per_item = acs['ItemWidth'] % acs['RegWidth']
-        else:
-            self.regs_per_item = int(acs['ItemWidth'] / acs['RegWidth']) + 1
-
-        if acs['ItemWidth'] % acs['RegWidth'] == 0:
-            self.last_reg_mask = calc_mask((acs['RegWidth'] - 1, 0))
-        else:
-            self.last_reg_mask = calc_mask(
-                (acs['ItemWidth'] - (self.regs_per_item - 1) * acs['RegWidth'] - 1, 0)
-            )
-
-        self.block_width = acs['RegWidth']
-
-    def __len__(self):
-        return self.item_count
-
-    def _regs_to_data(self, buf):
-        assert len(buf) == self.regs_per_item
-        data = 0
-        for i, bite in enumerate(buf):
-            if i == len(buf) - 1:
-                data |= (bite & self.last_reg_mask) << (i * self.block_width)
-            else:
-                data |= bite << (i * self.block_width)
-        return data
-
-    def read(self, idx=None):
-        if idx is None:
-            buf = self.iface.readb(self.addr, self.reg_count)
-            data = []
-            for i in range(self.item_count):
-                data.append(
-                    self._regs_to_data(
-                        buf[i * self.regs_per_item : (i + 1) * self.regs_per_item]
-                    )
-                )
-            return data
-        elif type(idx) == int:
-            assert 0 <= idx < self.item_count
-            buf = self.iface.readb(
-                self.addr + idx * self.regs_per_item, self.regs_per_item
-            )
-            return self._regs_to_data(buf)
-        else:
-            data = []
-            for i in idx:
-                assert 0 <= i < self.item_count
-                buf = self.iface.readb(
-                    self.addr + i * self.regs_per_item, self.regs_per_item
-                )
-                data.append(self._regs_to_data(buf))
-            return data
-
-
-class Upstream:
-    def __init__(self, iface, stream, blk_addr):
-        self.iface = iface
-        self.addr = blk_addr + stream['Returns'][0]['Access']['StartAddr']
-        self.delay = calc_delay(stream['Delay'])
-        self.buf_iface = _BufferIface()
-        self.buf_size, self.returns = create_mock_returns(self.buf_iface, stream['Returns'])
-
-    def read(self, n):
-        """
-        Read the stream n times.
-        Read returns a tuple of tuples. Grouped returns are returned as dictionary (not yet supported).
-        Non grouped returns are returned as values within tuple.
-        """
-        if self.buf_size == 1:
-            read_data = [[x] for x in self.iface.cread(self.addr, n)]
-        else:
-            read_data = self.iface.creadb(self.addr, self.buf_size, n)
-
-        data = []
-        for buf in read_data:
-            self.buf_iface.set_buf(buf)
-            tup = []  # List to allow append but must be cast to tuple.
-
-            for ret in self.returns:
-                # NOTE: Groups are not yet supported so it is safe to immediately append.
-                tup.append(ret["Status"].read())
-
-            data.append(tuple(tup))
-
-        return tuple(data)
-
-
-class Downstream:
-    def __init__(self, iface, stream, blk_addr):
-        self.iface = iface
-        self.params = stream['Params']
-        self.addr = blk_addr + self.params[0]['Access']['StartAddr']
-        self.delay = calc_delay(stream['Delay'])
-
-    def write(self, data):
-        wbuf = []  # Write buffer
-        args_in_one_reg = False  # All arguments occupy one register
-
-        for args in data:
-            assert len(args) == len(
-                self.params
-            ), f"invalid number of arguments {len(args)}, want {len(self.params)}"
-
-            buf = pack_params(self.params, *args)
-            if len(buf) == 1:
-                args_in_one_reg = True
-                wbuf.append(buf[0])
-            else:
-                wbuf.append(buf)
-
-        if self.delay is None:
-            if args_in_one_reg:
-                self.iface.cwrite(self.addr, wbuf)
-            else:
-                self.iface.cwriteb(self.addr, wbuf)
-        else:
-            for i, val in enumerate(wbuf):
-                if args_in_one_reg:
-                    self.iface.write(self.addr, val)
-                else:
-                    self.iface.writeb(self.addr, buf)
-
-                if i < len(wbuf) - 1:
-                    time.sleep(self.delay)
