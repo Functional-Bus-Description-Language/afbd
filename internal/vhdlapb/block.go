@@ -144,8 +144,8 @@ func genSubblock(
 	initSubblockCount := fmts.SubblockCount
 
 	fmts.EntitySubblockPorts += fmt.Sprintf(`;
-  %s_apb_reqs_o : out apb.requester_out_array_t(%d downto 0);
-  %[1]s_apb_reqs_i : in  apb.requester_in_array_t(%[2]d downto 0)`,
+  %s_apb_reqs_o : out apb.requester_out_array_t(0 to %d);
+  %[1]s_apb_reqs_i : in  apb.requester_in_array_t(0 to %[2]d)`,
 		sb.Name, sb.Count-1,
 	)
 

@@ -43,8 +43,8 @@ entity {{.EntityName}} is
 port (
   clk_i : in std_logic;
   rst_i : in std_logic;
-  apb_coms_i : in  apb.completer_in_array_t ({{.MasterCount}} - 1 downto 0);
-  apb_coms_o : out apb.completer_out_array_t({{.MasterCount}} - 1 downto 0){{.EntitySubblockPorts}}{{.EntityFunctionalPorts}}
+  apb_coms_i : in  apb.completer_in_array_t (0 to {{.MasterCount}} - 1);
+  apb_coms_o : out apb.completer_out_array_t(0 to {{.MasterCount}} - 1){{.EntitySubblockPorts}}{{.EntityFunctionalPorts}}
 );
 end entity;
 
