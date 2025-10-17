@@ -96,8 +96,13 @@ apb_com.slverr <= '0';
 -- Stream Strobes Clear{{.StreamsStrobesClear}}
 
 transfer : if apb_req.selx = '1' then
+{{ if gt .InternalAddrBitCount 0 }}
   -- Shift by 2 bits because of byte addressing.
   addr := to_integer(unsigned(apb_req.addr({{.InternalAddrBitCount}} - 1 + 2 downto 2)));
+{{ else }}
+  -- There is only one register in the block, fix address to 0.
+  addr := 0;
+{{ end }}
 
   -- First assume there is some kind of error.
   -- For example internal address is invalid or there is a try to write status.

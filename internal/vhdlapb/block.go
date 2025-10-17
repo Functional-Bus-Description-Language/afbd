@@ -17,7 +17,7 @@ import (
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/fn"
 )
 
-//go:embed templates/blockEntity.vhd
+//go:embed templates/block.vhd
 var blockEntityTmplStr string
 var blockEntityTmpl = template.Must(template.New("vhdl-apb entity").Parse(blockEntityTmplStr))
 
@@ -63,7 +63,7 @@ type BlockEntityFormatters struct {
 func genBlock(blk utils.Block, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	intAddrBitCount := int64(1)
+	intAddrBitCount := int64(0)
 	if blk.Block.Sizes.Own > 1 {
 		intAddrBitCount = int64(math.Ceil(math.Log2(float64(blk.Block.Sizes.Own))))
 	}
@@ -163,10 +163,10 @@ func genSubblock(
 		lowerBound := initSubblockCount + 1
 		upperBound := lowerBound + sb.Count - 1
 
-		s := fmt.Sprintf("\n  reqs_i(%d downto %d) => %s_apb_reqs_i,", lowerBound, upperBound, sb.Name)
+		s := fmt.Sprintf("\n  reqs_i(%d to %d) => %s_apb_reqs_i,", lowerBound, upperBound, sb.Name)
 		fmts.CrossbarSubblockPortsIn += s
 
-		s = fmt.Sprintf(",\n  reqs_o(%d downto %d) => %s_apb_reqs_o", lowerBound, upperBound, sb.Name)
+		s = fmt.Sprintf(",\n  reqs_o(%d to %d) => %s_apb_reqs_o", lowerBound, upperBound, sb.Name)
 		fmts.CrossbarSubblockPortsOut += s
 	}
 

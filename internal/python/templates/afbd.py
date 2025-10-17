@@ -179,20 +179,28 @@ def gen_stream(iface, strm, blk_addr):
 
 
 class Block:
-    def __init__(self, iface, blk):
-        self.iface = iface
+    def __init__(self, iface, blk, blk_idx=None):
+        """
+        blk_idx is the block index in case of array blocks.
+        """
 
         # Generate subblocks
         for subblk in blk['Subblocks'] or []:
             if subblk['IsArray']:
-                raise Exception("unimplemented")
+                sbs = []
+                for i in range(subblk['Count']):
+                    sbs.append(Block(iface, subblk, i))
+                setattr(self, subblk['Name'], sbs)
             else:
-                setattr(self, subblk['Name'], Block(self.iface, subblk))
+                setattr(self, subblk['Name'], Block(iface, subblk))
 
         # Generate block constants
         [setattr(self, name, c) for name, c in gen_consts(blk['Consts']).items()]
 
         blk_addr = blk['AddrSpace']['Start']
+        if blk_idx is not None:
+            addr_space_size = blk['AddrSpace']['End'] - blk['AddrSpace']['Start'] + 1
+            blk_addr += int(blk_idx * addr_space_size / blk['Count'])
 
         # Generate block functionalities
         [setattr(self, name, c) for name, c in gen_configs(iface, blk['Configs'], blk_addr).items()]

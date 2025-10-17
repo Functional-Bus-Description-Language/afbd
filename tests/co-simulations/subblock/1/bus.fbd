@@ -1,0 +1,4 @@
+Main bus
+  Sum status; width = 34
+  Blk [3]block
+    X config
