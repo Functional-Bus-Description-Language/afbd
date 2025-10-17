@@ -57,10 +57,10 @@ def gen_consts(consts):
     return cs
 
 
-def gen_configs(iface, blk):
+def gen_configs(iface, configs, blk_addr):
     cfgs = dict()
-    for cfg in blk["Configs"] or []:
-        cfgs[cfg['Name']] = gen_config(iface, cfg, blk['AddrSpace']['Start'])
+    for cfg in configs or []:
+        cfgs[cfg['Name']] = gen_config(iface, cfg, blk_addr)
     return cfgs
 
 
@@ -82,11 +82,11 @@ def gen_config(iface, cfg, blk_addr):
         raise Exception(f"unimplemented for access type '{typ}'")
 
 
-def gen_masks(iface, blk):
-    masks = dict()
-    for mask in blk["Masks"] or []:
-        masks[mask['Name']] = gen_mask(iface, mask, blk['AddrSpace']['Start'])
-    return masks
+def gen_masks(iface, masks, blk_addr):
+    ms = dict()
+    for mask in masks or []:
+        ms[mask['Name']] = gen_mask(iface, mask, blk_addr)
+    return ms
 
 
 def gen_mask(iface, mask, blk_addr):
@@ -99,11 +99,11 @@ def gen_mask(iface, mask, blk_addr):
         raise Exception(f"unimplemented for access type '{typ}'")
 
 
-def gen_procs(iface, blk):
-    procs = dict()
-    for proc in blk["Procs"] or []:
-        procs[proc['Name']] = gen_proc(iface, proc, blk['AddrSpace']['Start'])
-    return procs
+def gen_procs(iface, procs, blk_addr):
+    ps = dict()
+    for proc in procs or []:
+        ps[proc['Name']] = gen_proc(iface, proc, blk_addr)
+    return ps
 
 
 def gen_proc(iface, proc, blk_addr):
@@ -119,27 +119,27 @@ def gen_proc(iface, proc, blk_addr):
         return ParamsAndReturnsProc(iface, proc, blk_addr)
 
 
-def gen_statics(iface, blk):
+def gen_statics(iface, statics, blk_addr):
     sts = dict()
-    for st in blk["Statics"] or []:
-        sts[st['Name']] = gen_static(iface, st, blk['AddrSpace']['Start'])
+    for st in statics or []:
+        sts[st['Name']] = gen_static(iface, st, blk_addr)
     return sts
 
 
-def gen_static(iface, static, blk_addr):
-    typ = static['Access']['Type']
+def gen_static(iface, st, blk_addr):
+    typ = st['Access']['Type']
     if typ == 'SingleOneReg':
-        return StaticSingleOneReg(iface, static, blk_addr)
+        return StaticSingleOneReg(iface, st, blk_addr)
     elif typ == 'SingleNRegs':
-        return StaticSingleNRegs(iface, static, blk_addr)
+        return StaticSingleNRegs(iface, st, blk_addr)
     else:
         raise Exception(f"unimplemented for access type '{typ}'")
 
 
-def gen_statuses(iface, blk):
+def gen_statuses(iface, statuses, blk_addr):
     sts = dict()
-    for st in blk["Statuses"] or []:
-        sts[st['Name']] = gen_status(iface, st, blk['AddrSpace']['Start'])
+    for st in statuses or []:
+        sts[st['Name']] = gen_status(iface, st, blk_addr)
     return sts
 
 
@@ -163,10 +163,10 @@ def gen_status(iface, st, blk_addr):
         raise Exception(f"unimplemented for access type '{typ}'")
 
 
-def gen_streams(iface, blk):
+def gen_streams(iface, streams, blk_addr):
     strms = dict()
-    for strm in blk["Streams"] or []:
-        strms[strm['Name']] = gen_stream(iface, strm, blk['AddrSpace']['Start'])
+    for strm in streams or []:
+        strms[strm['Name']] = gen_stream(iface, strm, blk_addr)
     return strms
 
 
@@ -182,17 +182,25 @@ class Block:
     def __init__(self, iface, blk):
         self.iface = iface
 
+        # Generate subblocks
         for subblk in blk['Subblocks'] or []:
-            setattr(self, subblk['Name'], Block(self.iface, subblk))
+            if subblk['IsArray']:
+                raise Exception("unimplemented")
+            else:
+                setattr(self, subblk['Name'], Block(self.iface, subblk))
 
+        # Generate block constants
         [setattr(self, name, c) for name, c in gen_consts(blk['Consts']).items()]
 
-        [setattr(self, name, c) for name, c in gen_configs(iface, blk).items()]
-        [setattr(self, name, m) for name, m in gen_masks(iface, blk).items()]
-        [setattr(self, name, p) for name, p in gen_procs(iface, blk).items()]
-        [setattr(self, name, s) for name, s in gen_statics(iface, blk).items()]
-        [setattr(self, name, s) for name, s in gen_statuses(iface, blk).items()]
-        [setattr(self, name, s) for name, s in gen_streams(iface, blk).items()]
+        blk_addr = blk['AddrSpace']['Start']
+
+        # Generate block functionalities
+        [setattr(self, name, c) for name, c in gen_configs(iface, blk['Configs'], blk_addr).items()]
+        [setattr(self, name, m) for name, m in gen_masks(iface, blk['Masks'], blk_addr).items()]
+        [setattr(self, name, p) for name, p in gen_procs(iface,  blk['Procs'], blk_addr).items()]
+        [setattr(self, name, s) for name, s in gen_statics(iface,  blk['Statics'], blk_addr).items()]
+        [setattr(self, name, s) for name, s in gen_statuses(iface,  blk['Statuses'], blk_addr).items()]
+        [setattr(self, name, s) for name, s in gen_streams(iface,  blk['Streams'], blk_addr).items()]
 
 
 class Bus(Block):
