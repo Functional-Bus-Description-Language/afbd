@@ -28,10 +28,6 @@
 ------------------------------------------------------------------
 ```
 
-## 0
-Test checking `proc` without any parameter or return.
-In such case only call signal must be generated on address write.
-
 ## 1
 Test checking `proc` with 2 parameters and no returns.
 Both parameters are single with `SingleOneReg` access type, and are placed in the same register.
