@@ -112,11 +112,11 @@ def gen_proc(iface, proc, blk_addr):
     if lp == 0 and lr == 0:
         return EmptyProc(iface, proc, blk_addr)
     elif lp > 0 and lr == 0:
-        return ParamsProc(iface, proc, blk_addr)
+        return ParamProc(iface, proc, blk_addr)
     elif lp == 0 and lr > 0:
-        return ReturnsProc(iface, proc, blk_addr)
+        return ReturnProc(iface, proc, blk_addr)
     else:
-        return ParamsAndReturnsProc(iface, proc, blk_addr)
+        return MixedProc(iface, proc, blk_addr)
 
 
 def gen_statics(iface, statics, blk_addr):
@@ -791,7 +791,7 @@ class EmptyProc:
             self.iface.read(self.exit_addr)
 
 
-class ParamsProc:
+class ParamProc:
     def __init__(self, iface, proc, blk_addr):
         self.iface = iface
         self.params = proc['Params']
@@ -820,7 +820,7 @@ class ParamsProc:
             self.iface.read(self.exit_addr)
 
 
-class ReturnsProc:
+class ReturnProc:
     def __init__(self, iface, returns_start_addr, returns, delay, call_addr):
         self.iface = iface
         self.returns_start_addr = returns_start_addr
@@ -853,7 +853,7 @@ class ReturnsProc:
         return tuple(tup)
 
 
-class ParamsAndReturnsProc:
+class MixedProc:
     def __init__(self, iface, params_start_addr, params, returns_start_addr, returns, delay):
         self.iface = iface
 
