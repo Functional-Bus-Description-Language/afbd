@@ -613,14 +613,14 @@ class ConfigArrayNInRegMInEndReg(ConfigArrayNInReg):
 class Mask:
     def _bits_to_iterable(self, bits):
         if bits == None:
-            return range(self.width)
+            return range(self.width) # pylint: disable=no-member
         elif type(bits) == int:
             return (bits,)
         return bits
 
     def _assert_bits_in_range(self, bits):
         for b in bits:
-            assert 0 <= b < self.width, "mask overrange"
+            assert 0 <= b < self.width, "mask overrange" # pylint: disable=no-member
 
     def _assert_bits_to_update(self, bits):
         if bits == None:
@@ -719,6 +719,7 @@ class MaskSingleNRegs(StatusSingleNRegs, Mask):
         for b in bits:
             mask ^= 1 << b
 
+        # TODO: Use block write here.
         for i, a in enumerate(self.addrs):
             self.iface.write(
                 a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
