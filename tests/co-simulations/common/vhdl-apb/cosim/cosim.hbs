@@ -1,9 +1,9 @@
 namespace eval vhdl-apb::cosim {
-	proc src {} {
-		hbs::AddDep vhdl-types::src
-		hbs::AddDep vhdl::amba5::apb::pkg::src
-		hbs::AddDep vhdl::amba5::apb::bfm::src
-		hbs::AddFile src/*.vhd
-	}
-	hbs::Register
+  proc src {} {
+    hbs::AddDep vhdl-types::src
+    hbs::AddDep vhdl::amba5::apb::pkg::src
+    hbs::AddDep vhdl::amba5::apb::bfm::src
+    hbs::AddFile src/*.vhd
+  }
+  hbs::Register
 }

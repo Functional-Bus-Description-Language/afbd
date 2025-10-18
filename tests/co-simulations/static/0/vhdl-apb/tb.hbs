@@ -1,52 +1,52 @@
 namespace eval afbd::vhdl-apb::static-0 {
-	variable ctx [hbs::utils::ctxName [namespace current]]
-	variable hdl [hbs::utils::hdlName [namespace current]]
+  variable ctx [hbs::utils::ctxName [namespace current]]
+  variable hdl [hbs::utils::hdlName [namespace current]]
 
-	# Custom setupHdl because of -add-timestamp
-	proc _setupHdl {ctx hdl sw} {
-		hbs::SetTool "nvc"
-		hbs::SetTop "tb_cosim"
+  # Custom setupHdl because of -add-timestamp
+  proc _setupHdl {ctx hdl sw} {
+    hbs::SetTool "nvc"
+    hbs::SetTop "tb_cosim"
 
-		hbs::AddDep afbd::gen \
-			-add-timestamp \
-			$hdl -path autogen/$ctx/tb-$sw \
-			$sw -path autogen/$ctx/tb-$sw \
-			json -path autogen/$ctx \
-			[hbs::CoreDir]/../bus.fbd
+    hbs::AddDep afbd::gen \
+      -add-timestamp \
+      $hdl -path autogen/$ctx/tb-$sw \
+      $sw -path autogen/$ctx/tb-$sw \
+      json -path autogen/$ctx \
+      [hbs::CoreDir]/../bus.fbd
 
-		hbs::AddDep $hdl\::cosim::src
-		hbs::AddFile *.vhd
+    hbs::AddDep $hdl\::cosim::src
+    hbs::AddFile *.vhd
 
-		hbs::SetGeneric G_SW_GW_FIFO_PATH "/tmp/afbd/$ctx/$sw-to-$hdl"
-		hbs::SetGeneric G_GW_SW_FIFO_PATH "/tmp/afbd/$ctx/$hdl-to-$sw"
+    hbs::SetGeneric G_SW_GW_FIFO_PATH "/tmp/afbd/$ctx/$sw-to-$hdl"
+    hbs::SetGeneric G_GW_SW_FIFO_PATH "/tmp/afbd/$ctx/$hdl-to-$sw"
 
-		set logDir "/tmp/afbd/$ctx/tb-$sw"
-		if {[file exist $logDir] eq 0} {
-			file mkdir $logDir
-		}
-	}
+    set logDir "/tmp/afbd/$ctx/tb-$sw"
+    if {[file exist $logDir] eq 0} {
+      file mkdir $logDir
+    }
+  }
 
-	proc tb-python {} {
-		variable ctx
-		variable hdl
-		set sw "python"
+  proc tb-python {} {
+    variable ctx
+    variable hdl
+    set sw "python"
 
-		_setupHdl $ctx $hdl $sw
-		hbs::utils::runPython $ctx $hdl $sw
+    _setupHdl $ctx $hdl $sw
+    hbs::utils::runPython $ctx $hdl $sw
 
-		hbs::Run
-	}
+    hbs::Run
+  }
 
-	proc tb-c-sync {} {
-		variable ctx
-		variable hdl
-		set sw "c-sync"
+  proc tb-c-sync {} {
+    variable ctx
+    variable hdl
+    set sw "c-sync"
 
-		_setupHdl $ctx $hdl $sw
-		hbs::utils::compileAndRunC $ctx $hdl $sw
+    _setupHdl $ctx $hdl $sw
+    hbs::utils::compileAndRunC $ctx $hdl $sw
 
-		hbs::Run
-	}
+    hbs::Run
+  }
 
-	hbs::Register
+  hbs::Register
 }

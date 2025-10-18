@@ -1,28 +1,28 @@
 namespace eval afbd::vhdl-apb::proc-1 {
-	variable ctx [hbs::utils::ctxName [namespace current]]
-	variable hdl [hbs::utils::hdlName [namespace current]]
+  variable ctx [hbs::utils::ctxName [namespace current]]
+  variable hdl [hbs::utils::hdlName [namespace current]]
 
-	proc tb-python {} {
-		variable ctx
-		variable hdl
-		set sw "python"
+  proc tb-python {} {
+    variable ctx
+    variable hdl
+    set sw "python"
 
-		hbs::utils::setupHdl $ctx $hdl $sw
-		hbs::utils::runPython $ctx $hdl $sw
+    hbs::utils::setupHdl $ctx $hdl $sw
+    hbs::utils::runPython $ctx $hdl $sw
 
-		hbs::Run
-	}
+    hbs::Run
+  }
 
-	proc tb-c-sync {} {
-		variable ctx
-		variable hdl
-		set sw "c-sync"
+  proc tb-c-sync {} {
+    variable ctx
+    variable hdl
+    set sw "c-sync"
 
-		hbs::utils::setupHdl $ctx $hdl $sw
-		hbs::utils::compileAndRunC $ctx $hdl $sw
+    hbs::utils::setupHdl $ctx $hdl $sw
+    hbs::utils::compileAndRunC $ctx $hdl $sw
 
-		hbs::Run
-	}
+    hbs::Run
+  }
 
-	hbs::Register
+  hbs::Register
 }

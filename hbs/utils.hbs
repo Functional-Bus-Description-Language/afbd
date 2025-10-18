@@ -1,79 +1,79 @@
 namespace eval utils {
-	# ns is the namespace name from which hdl name will be extracted.
-	proc hdlName {ns} {
-		return [lindex [split $ns ::] end-2]
-	}
+  # ns is the namespace name from which hdl name will be extracted.
+  proc hdlName {ns} {
+    return [lindex [split $ns ::] end-2]
+  }
 
-	# ns is the namespace name from which hdl name will be extracted.
-	proc ctxName {ns} {
-		return [regsub {\-} [lindex [split $ns ::] end] /]
-	}
+  # ns is the namespace name from which hdl name will be extracted.
+  proc ctxName {ns} {
+    return [regsub {\-} [lindex [split $ns ::] end] /]
+  }
 
-	proc setupHdl {ctx hdl sw} {
-		hbs::SetTool "nvc"
+  proc setupHdl {ctx hdl sw} {
+    hbs::SetTool "nvc"
 
-                if {$hbs::Tool == "nvc"} {
-			hbs::AddPostElabCb hbs::SetArgsPrefix "--messages=compact"
-			hbs::AddPostElabCb hbs::SetArgsSuffix "--exit-severity=error --dump-arrays"
-                }
+    if {$hbs::Tool == "nvc"} {
+      hbs::AddPostElabCb hbs::SetArgsPrefix "--messages=compact"
+      hbs::AddPostElabCb hbs::SetArgsSuffix "--exit-severity=error --dump-arrays"
+    }
 
-		hbs::SetTop "tb_cosim"
+    hbs::SetTop "tb_cosim"
 
-		hbs::AddDep afbd::gen \
-			$hdl -path autogen/$ctx/tb-$sw \
-			$sw -path autogen/$ctx/tb-$sw \
-			json -path autogen/$ctx \
-			[hbs::CoreDir]/../bus.fbd
+    hbs::AddDep afbd::gen \
+      $hdl -path autogen/$ctx/tb-$sw \
+      $sw -path autogen/$ctx/tb-$sw \
+      json -path autogen/$ctx \
+      [hbs::CoreDir]/../bus.fbd
 
-		hbs::AddDep $hdl\::cosim::src
-		hbs::AddFile *.vhd
+    hbs::AddDep $hdl\::cosim::src
+    hbs::AddFile *.vhd
 
-		hbs::SetGeneric G_SW_GW_FIFO_PATH "/tmp/afbd/$ctx/$sw-to-$hdl"
-		hbs::SetGeneric G_GW_SW_FIFO_PATH "/tmp/afbd/$ctx/$hdl-to-$sw"
+    hbs::SetGeneric G_SW_GW_FIFO_PATH "/tmp/afbd/$ctx/$sw-to-$hdl"
+    hbs::SetGeneric G_GW_SW_FIFO_PATH "/tmp/afbd/$ctx/$hdl-to-$sw"
 
-		set logDir "/tmp/afbd/$ctx/tb-$sw"
-		if {[file exist $logDir] eq 0} {
-			file mkdir $logDir
-		}
-	}
+    set logDir "/tmp/afbd/$ctx/tb-$sw"
+    if {[file exist $logDir] eq 0} {
+      file mkdir $logDir
+    }
+  }
 
-	proc runPython {ctx hdl sw} {
-		set swGwFifo "/tmp/afbd/$ctx/$sw-to-$hdl"
-		set gwSwFifo "/tmp/afbd/$ctx/$hdl-to-$sw"
-		set logDir "/tmp/afbd/$ctx/tb-$sw"
-		set reg_json_file "../../../../../autogen/$ctx/reg.json"
-		set const_json_file "../../../../../autogen/$ctx/const.json"
+  proc runPython {ctx hdl sw} {
+    set swGwFifo "/tmp/afbd/$ctx/$sw-to-$hdl"
+    set gwSwFifo "/tmp/afbd/$ctx/$hdl-to-$sw"
+    set logDir "/tmp/afbd/$ctx/tb-$sw"
+    set reg_json_file "../../../../../autogen/$ctx/reg.json"
+    set const_json_file "../../../../../autogen/$ctx/const.json"
 
-		set pythonPaths "[pwd]/tests/co-simulations/common/python:[pwd]/autogen/$ctx/tb-$sw"
-		if {[info exists env(PYTHONPATH)]} {
-			set ::env(PYTHONPATH) $::env(PYTHONPATH):$pythonPaths
-		} else {
-			set ::env(PYTHONPATH) $pythonPaths
-		}
+    set pythonPaths "[pwd]/tests/co-simulations/common/python:[pwd]/autogen/$ctx/tb-$sw"
+    if {[info exists env(PYTHONPATH)]} {
+      set ::env(PYTHONPATH) $::env(PYTHONPATH):$pythonPaths
+    } else {
+      set ::env(PYTHONPATH) $pythonPaths
+    }
 
-		hbs::Exec python3 ../$sw/tb.py \
-		  $swGwFifo $gwSwFifo \
-		  $reg_json_file $const_json_file \
-		  > $logDir/$hdl.log &
-	}
+    hbs::Exec python3 ../$sw/tb.py \
+      $swGwFifo $gwSwFifo \
+      $reg_json_file $const_json_file \
+      > $logDir/$hdl.log &
+  }
 
-	proc compileAndRunC {ctx hdl sw} {
-		set dir autogen/$ctx/tb-$sw
+  proc compileAndRunC {ctx hdl sw} {
+    set dir autogen/$ctx/tb-$sw
 
-		file copy -force {*}[glob tests/co-simulations/common/$sw/*] $dir
-		file copy -force {*}[glob tests/co-simulations/$ctx/$sw/*] $dir
+    file copy -force {*}[glob tests/co-simulations/common/$sw/*] $dir
+    file copy -force {*}[glob tests/co-simulations/$ctx/$sw/*] $dir
 
-		set pwd [pwd]
-		cd $dir
+    set pwd [pwd]
+    cd $dir
 
-		exec gcc -Wall {*}[glob *.c] -o tb >@ stdout
+    exec gcc -Wall {*}[glob *.c] -o tb >@ stdout
 
-		set swGwFifo "/tmp/afbd/$ctx/$sw-to-$hdl"
-		set gwSwFifo "/tmp/afbd/$ctx/$hdl-to-$sw"
-		set logDir "/tmp/afbd/$ctx/tb-$sw"
+    set swGwFifo "/tmp/afbd/$ctx/$sw-to-$hdl"
+    set gwSwFifo "/tmp/afbd/$ctx/$hdl-to-$sw"
+    set logDir "/tmp/afbd/$ctx/tb-$sw"
 
-		exec ./tb $swGwFifo $gwSwFifo > $logDir/$hdl.log &
+    exec ./tb $swGwFifo $gwSwFifo > $logDir/$hdl.log &
 
-		cd $pwd
-	}
+    cd $pwd
+  }
 }
