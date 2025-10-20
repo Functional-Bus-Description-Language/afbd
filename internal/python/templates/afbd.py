@@ -934,8 +934,8 @@ class Upstream:
         self.buf_size, self.returns = create_mock_returns(self.buf_iface, stream['Returns'])
 
     def read(self, n):
-        """
-        Read the stream n times.
+        """Read the stream n times.
+
         Read returns a tuple of tuples. Grouped returns are returned as dictionary (not yet supported).
         Non grouped returns are returned as values within tuple.
         """
