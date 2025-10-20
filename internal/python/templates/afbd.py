@@ -243,8 +243,8 @@ class StatusSingleNRegs:
         self.iface = iface
 
         acs = status['Access']
-        start_addr = blk_addr + acs['StartAddr']
-        self.addrs = list(range(start_addr, start_addr + acs['RegCount']))
+        self.start_addr = blk_addr + acs['StartAddr']
+        self.reg_count = acs['RegCount']
         self.width = 0
         self.masks = []
         self.reg_shifts = []
@@ -267,11 +267,11 @@ class StatusSingleNRegs:
                     self.width += acs['RegWidth']
 
     def read(self):
+        buf = self.iface.readb(self.start_addr, self.reg_count)
+
         data = 0
-        for i, a in enumerate(self.addrs):
-            data |= (
-                (self.iface.read(a) >> self.reg_shifts[i]) & self.masks[i]
-            ) << self.data_shifts[i]
+        for i in range(self.reg_count):
+            data |= ((buf[i] >> self.reg_shifts[i]) & self.masks[i]) << self.data_shifts[i]
         return data
 
 
@@ -501,10 +501,14 @@ class ConfigSingleNRegs(StatusSingleNRegs):
 
     def write(self, data):
         assert 0 <= data < 2**self.width, "value overrange ({})".format(data)
-        for i, a in enumerate(self.addrs):
-            self.iface.write(
-                a, ((data >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
+
+        buf = []
+        for i in range(self.reg_count):
+            buf.append(
+                ((data >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
             )
+
+        self.iface.writeb(self.start_addr, buf)
 
 
 class ConfigArrayOneReg(StatusArrayOneReg):
@@ -705,10 +709,13 @@ class MaskSingleNRegs(StatusSingleNRegs, Mask):
         for b in bits:
             mask |= 1 << b
 
-        for i, a in enumerate(self.addrs):
-            self.iface.write(
-                a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
+        buf = []
+        for i in range(self.reg_count):
+            buf.append(
+                ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
             )
+
+        self.iface.writeb(self.start_addr, buf)
 
     def clear(self, bits=None):
         bits = self._bits_to_iterable(bits)
@@ -720,11 +727,13 @@ class MaskSingleNRegs(StatusSingleNRegs, Mask):
 
         mask ^= self.read()
 
-        # TODO: Use block write here.
-        for i, a in enumerate(self.addrs):
-            self.iface.write(
-                a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
+        buf = []
+        for i in range(self.reg_count):
+            buf.append(
+                ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
             )
+
+        self.iface.writeb(self.start_addr, buf)
 
     def update_set(self, bits):
         self._assert_bits_to_update(bits)
@@ -737,10 +746,14 @@ class MaskSingleNRegs(StatusSingleNRegs, Mask):
             mask |= 1 << b
 
         mask |= self.read()
-        for i, a in enumerate(self.addrs):
-            self.iface.write(
-                a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
+
+        buf = []
+        for i in range(self.reg_count):
+            buf.append(
+                ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
             )
+
+        self.iface.writeb(self.start_addr, buf)
 
     def update_clear(self, bits):
         self._assert_bits_to_update(bits)
@@ -753,10 +766,14 @@ class MaskSingleNRegs(StatusSingleNRegs, Mask):
             mask ^= 1 << b
 
         mask &= self.read()
-        for i, a in enumerate(self.addrs):
-            self.iface.write(
-                a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
+
+        buf = []
+        for i in range(self.reg_count):
+            buf.append(
+                ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
             )
+
+        self.iface.writeb(self.start_addr, buf)
 
     def toggle(self, bits=None):
         bits = self._bits_to_iterable(bits)
@@ -767,10 +784,14 @@ class MaskSingleNRegs(StatusSingleNRegs, Mask):
             mask |= 1 << b
 
         mask ^= self.read()
-        for i, a in enumerate(self.addrs):
-            self.iface.write(
-                a, ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
+
+        buf = []
+        for i in range(self.reg_count):
+            buf.append(
+                ((mask >> self.data_shifts[i]) & self.masks[i]) << self.reg_shifts[i]
             )
+
+        self.iface.writeb(self.start_addr, buf)
 
 #
 # Procs
@@ -1016,6 +1037,9 @@ class BufferIface:
 
     def read(self, addr):
         return self.buf[addr]
+
+    def readb(self, addr, count):
+        return self.buf[addr:addr+count]
 
 
 def check_arg_values(params, *args):
