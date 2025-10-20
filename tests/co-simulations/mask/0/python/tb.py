@@ -16,59 +16,103 @@ try:
 
     max_val = 2 ** Main.WIDTH - 1
 
-    print("\nTesting Mask setting")
+    print("\ntesting set()")
+    print("\ntesting settting all bits")
     Main.Mask.set()
-    read = Main.Mask.read()
-    assert read == max_val, f"read {read}, expecting {max_val}"
-    read = Main.St.read()
-    assert read == max_val, f"read {read}, expecting {max_val}"
-
-    print("\nTesting Mask clear")
+    got = Main.Mask.read()
+    assert got == max_val, f"got {got}, want {max_val}"
+    got = Main.St.read()
+    assert got == max_val, f"got {got}, want {max_val}"
     Main.Mask.set([])
-    read = Main.Mask.read()
-    assert read == 0, f"read {read}, expecting 0"
-    read = Main.St.read()
-    assert read == 0, f"read {read}, expecting 0"
-
-    print("\nTesting Mask setting single bit")
+    print("\ntesting settting one bit")
     Main.Mask.set(4)
-    read = Main.Mask.read()
-    assert read == 1 << 4, f"read {read}, expecting 4"
-    read = Main.St.read()
-    assert read == 1 << 4, f"read {read}, expecting 4"
-
-    # Clear before next test.
+    got = Main.Mask.read()
+    assert got == 1 << 4, f"got {got}, want 4"
+    got = Main.St.read()
+    assert got == 1 << 4, f"got {got}, want 4"
     Main.Mask.set([])
-    print("\nTesting Mask setting multiple bits")
-    Main.Mask.set([0, 3])
-    read = Main.Mask.read()
-    assert read == 9, f"read {read}, expecting 9"
-    read = Main.St.read()
-    assert read == 9, f"read {read}, expecting 9"
-
-    print("\nTesting Mask update_set")
+    print("\ntesting settting two bits")
+    Main.Mask.set([0, 2])
+    got = Main.Mask.read()
+    assert got == 5, f"got {got}, want 5"
+    got = Main.St.read()
+    assert got == 5, f"got {got}, want 5"
     Main.Mask.set([])
-    Main.Mask.update_set([0, 2])
-    read = Main.Mask.read()
-    assert read == 5, f"read {read}, expecting 5"
-    read = Main.St.read()
-    assert read == 5, f"read {read}, expecting 5"
 
-    print("\nTesting Mask update_clear")
-    Main.Mask.update_clear([2])
-    read = Main.Mask.read()
-    assert read == 1, f"read {read}, expecting 1"
-    read = Main.St.read()
-    assert read == 1, f"read {read}, expecting 1"
+    print("\n\ntesting clear()")
+    print("\ntesting clearing all bits")
+    Main.Mask.set()
+    Main.Mask.clear()
+    got = Main.Mask.read()
+    assert got == 0, f"got {got}, want 0"
+    got = Main.St.read()
+    assert got == 0, f"got {got}, want 0"
+    print("\ntesting clearing single bit")
+    Main.Mask.set()
+    Main.Mask.clear(0)
+    got = Main.Mask.read()
+    assert got == 0b1111110, f"got {got:#b}, want 0b1111110"
+    got = Main.St.read()
+    assert got == 0b1111110, f"got {got:#b}, want 0b1111110"
+    print("\ntesting clearing two bits")
+    Main.Mask.set()
+    Main.Mask.clear([0, 3])
+    got = Main.Mask.read()
+    assert got == 0b1110110, f"got {got:#b}, want 0b1110110"
+    got = Main.St.read()
+    assert got == 0b1110110, f"got {got:#b}, want 0b1110110"
 
-    # Clear before next test.
-    Main.Mask.set([])
-    print("\nTesting Mask toggle")
-    Main.Mask.toggle([0, 2])
-    read = Main.Mask.read()
-    assert read == 5, f"read {read}, expecting 5"
-    read = Main.St.read()
-    assert read == 5, f"read {read}, expecting 5"
+    print("\n\ntesting toggle()")
+    Main.Mask.clear()
+    print("\ntesting toggle all bits")
+    Main.Mask.toggle()
+    got = Main.Mask.read()
+    assert got == 0b1111111, f"got {got:#b}, want 0b1111111"
+    got = Main.St.read()
+    assert got == 0b1111111, f"got {got:#b}, want 0b1111111"
+    print("\ntesting toggle one bit")
+    Main.Mask.toggle(3)
+    got = Main.Mask.read()
+    assert got == 0b1110111, f"got {got:#b}, want 0b1110111"
+    got = Main.St.read()
+    assert got == 0b1110111, f"got {got:#b}, want 0b1110111"
+    print("\ntesting toggle two bits")
+    Main.Mask.toggle([1, 2])
+    got = Main.Mask.read()
+    assert got == 0b1110001, f"got {got:#b}, want 0b1110001"
+    got = Main.St.read()
+    assert got == 0b1110001, f"got {got:#b}, want 0b1110001"
+
+
+    print("\n\ntesting update_set()")
+    Main.Mask.clear()
+    print("\ntesting update set one bit")
+    Main.Mask.update_set(2)
+    got = Main.Mask.read()
+    assert got == 0b0000100, f"got {got:#b}, want 0b0000100"
+    got = Main.St.read()
+    assert got == 0b0000100, f"got {got:#b}, want 0b0000100"
+    print("\ntesting update set two bits")
+    Main.Mask.update_set([4 ,6])
+    got = Main.Mask.read()
+    assert got == 0b1010100, f"got {got:#b}, want 0b1010100"
+    got = Main.St.read()
+    assert got == 0b1010100, f"got {got:#b}, want 0b1010100"
+
+    print("\n\ntesting update_clear()")
+    Main.Mask.set()
+    print("\ntesting update clear one bit")
+    Main.Mask.update_clear(2)
+    got = Main.Mask.read()
+    assert got == 0b1111011, f"got {got:#b}, want 0b1111011"
+    got = Main.St.read()
+    assert got == 0b1111011, f"got {got:#b}, want 0b1111011"
+    print("\ntesting update clear two bits")
+    Main.Mask.update_clear([0, 6])
+    got = Main.Mask.read()
+    assert got == 0b0111010, f"got {got:#b}, want 0b0111010"
+    got = Main.St.read()
+    assert got == 0b0111010, f"got {got:#b}, want 0b0111010"
 
     iface.end(0)
 

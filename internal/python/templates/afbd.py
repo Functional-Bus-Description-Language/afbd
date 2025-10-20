@@ -659,13 +659,12 @@ class MaskSingleOneReg(Mask, StatusSingleOneReg):
         bits = self._bits_to_iterable(bits)
         self._assert_bits_in_range(bits)
 
-        xor_mask = 0
+        mask = 0
         for b in bits:
-            xor_mask |= 1 << b
-        xor_mask <<= self.start_bit
+            mask |= 1 << b
 
-        mask = self.iface.read(self.addr) ^ xor_mask
-        self.iface.write(self.addr, mask)
+        mask ^= self.read()
+        self.iface.write(self.addr, mask << self.start_bit)
 
     def update_set(self, bits):
         self._assert_bits_to_update(bits)
@@ -677,8 +676,8 @@ class MaskSingleOneReg(Mask, StatusSingleOneReg):
         for b in bits:
             mask |= 1 << b
 
-        mask = self.iface.read(self.addr) | (mask << self.start_bit)
-        self.iface.write(self.addr, mask)
+        mask |= self.read()
+        self.iface.write(self.addr, mask << self.start_bit)
 
     def update_clear(self, bits):
         self._assert_bits_to_update(bits)
@@ -686,12 +685,12 @@ class MaskSingleOneReg(Mask, StatusSingleOneReg):
         bits = self._bits_to_iterable(bits)
         self._assert_bits_in_range(bits)
 
-        mask = 2**self.block_width - 1
+        mask = self.mask
         for b in bits:
             mask ^= 1 << b
 
-        mask = self.iface.read(self.addr) & (mask << self.start_bit)
-        self.iface.write(self.addr, mask)
+        mask &= self.read()
+        self.iface.write(self.addr, mask << self.start_bit)
 
 
 class MaskSingleNRegs(StatusSingleNRegs, Mask):
@@ -715,9 +714,11 @@ class MaskSingleNRegs(StatusSingleNRegs, Mask):
         bits = self._bits_to_iterable(bits)
         self._assert_bits_in_range(bits)
 
-        mask = self.mask
+        mask = 2**self.width - 1
         for b in bits:
             mask ^= 1 << b
+
+        mask ^= self.read()
 
         # TODO: Use block write here.
         for i, a in enumerate(self.addrs):
