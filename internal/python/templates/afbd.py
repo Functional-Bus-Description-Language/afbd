@@ -653,7 +653,7 @@ class MaskSingleOneReg(Mask, StatusSingleOneReg):
         bits = self._bits_to_iterable(bits)
         self._assert_bits_in_range(bits)
 
-        mask = self.mask
+        mask = 2**self.width - 1
         for b in bits:
             mask ^= 1 << b
 
@@ -689,7 +689,7 @@ class MaskSingleOneReg(Mask, StatusSingleOneReg):
         bits = self._bits_to_iterable(bits)
         self._assert_bits_in_range(bits)
 
-        mask = self.mask
+        mask = 2**self.width - 1
         for b in bits:
             mask ^= 1 << b
 
@@ -724,8 +724,6 @@ class MaskSingleNRegs(StatusSingleNRegs, Mask):
         mask = 2**self.width - 1
         for b in bits:
             mask ^= 1 << b
-
-        mask ^= self.read()
 
         buf = []
         for i in range(self.reg_count):
