@@ -814,6 +814,7 @@ class EmptyProc:
 class ParamProc:
     def __init__(self, iface, proc, blk_addr):
         self.iface = iface
+        self.name = proc['Name']
         self.params = proc['Params']
         self.params_start_addr = blk_addr + self.params[0]['Access']['StartAddr']
         self.delay = calc_delay(proc['Delay'])
@@ -823,9 +824,7 @@ class ParamProc:
     def __call__(self, *args):
         assert len(args) == len(
             self.params
-        ), "{}() takes {} arguments but {} were given".format(
-            self.__name__, len(self.params), len(args)
-        )
+        ), f"{self.name}() takes {len(self.params)} arguments but {len(args)} were given"
 
         buf = pack_params(self.params, *args)
 
@@ -841,11 +840,12 @@ class ParamProc:
 
 
 class ReturnProc:
-    def __init__(self, iface, returns_start_addr, returns, delay, call_addr):
+    def __init__(self, iface, proc, blk_addr):
         self.iface = iface
-        self.returns_start_addr = returns_start_addr
-        self.delay = delay
-        self.call_addr = call_addr
+        self.returns = proc['Returns']
+        self.returns_start_addr = blk_addr + self.returns[0]['Access']['StartAddr']
+        self.delay = calc_delay(proc['Delay'])
+        self.call_addr = blk_addr + proc['CallAddr']
 
         self.buf_iface = BufferIface()
         self.buf_size, self.returns = create_mock_returns(
