@@ -844,7 +844,8 @@ class ReturnProc:
         self.iface = iface
         self.returns_start_addr = blk_addr + proc['Returns'][0]['Access']['StartAddr']
         self.delay = calc_delay(proc['Delay'])
-        self.call_addr = blk_addr + proc['CallAddr']
+        if self.delay is not None:
+            self.call_addr = blk_addr + proc['CallAddr']
 
         self.buf_iface = BufferIface()
         self.buf_size, self.returns = create_mock_returns(self.buf_iface, proc['Returns'])

@@ -232,7 +232,7 @@ func genProcExit(proc *fn.Proc, fmts *BlockEntityFormatters) {
 
 	exitSet := `
   %s_exit : if addr = %d then
-    if apb_req.write = '0' then
+    if apb_req.enable = '1' and apb_req.write = '0' then
       %[1]s_o.exitt <= '1';
     end if;
   end if;

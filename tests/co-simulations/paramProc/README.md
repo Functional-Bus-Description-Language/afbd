@@ -1,4 +1,4 @@
-# Func tests
+# Proc tests
 
 ## One parameter tests table
 

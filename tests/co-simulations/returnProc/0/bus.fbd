@@ -1,0 +1,5 @@
+Main bus
+  Cfg config
+  Proc proc
+    ret return
+  Exit_Cnt status; width = 4
