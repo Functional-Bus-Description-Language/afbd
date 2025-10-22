@@ -842,15 +842,12 @@ class ParamProc:
 class ReturnProc:
     def __init__(self, iface, proc, blk_addr):
         self.iface = iface
-        self.returns = proc['Returns']
-        self.returns_start_addr = blk_addr + self.returns[0]['Access']['StartAddr']
+        self.returns_start_addr = blk_addr + proc['Returns'][0]['Access']['StartAddr']
         self.delay = calc_delay(proc['Delay'])
         self.call_addr = blk_addr + proc['CallAddr']
 
         self.buf_iface = BufferIface()
-        self.buf_size, self.returns = create_mock_returns(
-            self.buf_iface, returns_start_addr, returns
-        )
+        self.buf_size, self.returns = create_mock_returns(self.buf_iface, proc['Returns'])
 
     def __call__(self):
         if self.delay is not None:
@@ -874,26 +871,24 @@ class ReturnProc:
 
 
 class MixedProc:
-    def __init__(self, iface, params_start_addr, params, returns_start_addr, returns, delay):
+    def __init__(self, iface, proc, blk_addr):
         self.iface = iface
+        self.name = proc['Name']
+        self.params = proc['Params']
+        self.params_start_addr = blk_addr + proc['Params'][0]['Access']['StartAddr']
+        self.returns_start_addr = blk_addr + proc['Returns'][0]['Access']['StartAddr']
 
-        self.params_start_addr = params_start_addr
-        self.params = params
-
-        self.returns_start_addr = returns_start_addr
         self.returns_buf_iface = BufferIface()
         self.returns_buf_size, self.returns = create_mock_returns(
-            self.returns_buf_iface, returns_start_addr, returns
+            self.returns_buf_iface, proc['Returns']
         )
 
-        self.delay = delay
+        self.delay = calc_delay(proc['Delay'])
 
     def __call__(self, *args):
         assert len(args) == len(
             self.params
-        ), "{}() takes {} arguments but {} were given".format(
-            self.__name__, len(self.params), len(args)
-        )
+        ), f"{self.name}() takes {len(self.params)} arguments but {len(args)} were given"
 
         params_buf = pack_params(self.params, *args)
         if len(params_buf) == 1:
