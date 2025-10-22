@@ -816,7 +816,7 @@ class ParamProc:
         self.iface = iface
         self.name = proc['Name']
         self.params = proc['Params']
-        self.params_start_addr = blk_addr + self.params[0]['Access']['StartAddr']
+        self.param_start_addr = blk_addr + self.params[0]['Access']['StartAddr']
         self.delay = calc_delay(proc['Delay'])
         if self.delay is not None:
             self.exit_addr = blk_addr + proc['ExitAddr']
@@ -829,9 +829,9 @@ class ParamProc:
         buf = pack_params(self.params, *args)
 
         if len(buf) == 1:
-            self.iface.write(self.params_start_addr, buf[0])
+            self.iface.write(self.param_start_addr, buf[0])
         else:
-            self.iface.writeb(self.params_start_addr, buf)
+            self.iface.writeb(self.param_start_addr, buf)
 
         if self.delay is not None:
             if self.delay != 0:
@@ -842,7 +842,7 @@ class ParamProc:
 class ReturnProc:
     def __init__(self, iface, proc, blk_addr):
         self.iface = iface
-        self.returns_start_addr = blk_addr + proc['Returns'][0]['Access']['StartAddr']
+        self.return_start_addr = blk_addr + proc['Returns'][0]['Access']['StartAddr']
         self.delay = calc_delay(proc['Delay'])
         if self.delay is not None:
             self.call_addr = blk_addr + proc['CallAddr']
@@ -857,18 +857,21 @@ class ReturnProc:
                 time.sleep(self.delay)
 
         if self.buf_size == 1:
-            buf = [self.iface.read(self.returns_start_addr)]
+            buf = [self.iface.read(self.return_start_addr)]
         else:
-            buf = self.iface.readb(self.returns_start_addr, self.buf_size)
+            buf = self.iface.readb(self.return_start_addr, self.buf_size)
 
         self.buf_iface.set_buf(buf)
-        tup = []  # List to allow append but must be cast to tuple.
+        rets = []
 
         for ret in self.returns:
             # NOTE: Groups are not yet supported so it is safe to immediately append.
-            tup.append(ret['Status'].read())
+            rets.append(ret['Status'].read())
 
-        return tuple(tup)
+        if len(rets) == 1:
+            return rets[0]
+
+        return rets
 
 
 class MixedProc:
@@ -876,8 +879,8 @@ class MixedProc:
         self.iface = iface
         self.name = proc['Name']
         self.params = proc['Params']
-        self.params_start_addr = blk_addr + proc['Params'][0]['Access']['StartAddr']
-        self.returns_start_addr = blk_addr + proc['Returns'][0]['Access']['StartAddr']
+        self.param_start_addr = blk_addr + proc['Params'][0]['Access']['StartAddr']
+        self.return_start_addr = blk_addr + proc['Returns'][0]['Access']['StartAddr']
 
         self.returns_buf_iface = BufferIface()
         self.returns_buf_size, self.returns = create_mock_returns(
@@ -893,19 +896,19 @@ class MixedProc:
 
         params_buf = pack_params(self.params, *args)
         if len(params_buf) == 1:
-            self.iface.write(self.params_start_addr, params_buf[0])
+            self.iface.write(self.param_start_addr, params_buf[0])
         else:
-            self.iface.writeb(self.params_start_addr, params_buf)
+            self.iface.writeb(self.param_start_addr, params_buf)
 
         if self.delay is not None:
             if self.delay != 0:
                 time.sleep(self.delay)
 
         if self.returns_buf_size == 1:
-            returns_buf = [self.iface.read(self.returns_start_addr)]
+            returns_buf = [self.iface.read(self.return_start_addr)]
         else:
             returns_buf = self.iface.readb(
-                self.returns_start_addr, self.returns_buf_size
+                self.return_start_addr, self.returns_buf_size
             )
         self.returns_buf_iface.set_buf(returns_buf)
         tup = []  # List to allow append but must be cast to tuple.
@@ -1131,7 +1134,7 @@ def create_mock_returns(buf_iface, returns):
     Create mock returns that can be used with internal software buffer.
     It is useful to be used with returns proc or with upstram.
     """
-    returns_start_addr = returns[0]['Access']['StartAddr']
+    return_start_addr = returns[0]['Access']['StartAddr']
     buf_size = 0
     rets = []
     for ret in returns:
@@ -1144,8 +1147,8 @@ def create_mock_returns(buf_iface, returns):
         # Create mock status
         status = ret.copy()
         status['Access'] = ret['Access'].copy()
-        status['Access']['StartAddr'] -= returns_start_addr
-        status['Access']['EndAddr'] -= returns_start_addr
+        status['Access']['StartAddr'] -= return_start_addr
+        status['Access']['EndAddr'] -= return_start_addr
 
         # TODO: Use gen_status functions here.
         if acs['Type'] == 'SingleOneReg':

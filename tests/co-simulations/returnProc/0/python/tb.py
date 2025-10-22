@@ -22,7 +22,7 @@ try:
         Main.Cfg.write(want)
 
         print("calling proc")
-        got, = Main.Proc()
+        got = Main.Proc()
         assert got == want, f"got {got}, want {want}"
 
         exit_cnt = Main.Exit_Cnt.read()
