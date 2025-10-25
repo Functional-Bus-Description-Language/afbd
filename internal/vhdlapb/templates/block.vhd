@@ -60,6 +60,10 @@ signal apb_com : apb.completer_out_t;
 {{.SignalDeclarations}}
 begin
 
+{{ if and (eq .MasterCount 1) (eq .SubblockCount 0) }}
+apb_req <= apb_coms_i(0);
+apb_coms_o(0) <= apb_com;
+{{ else }}
 Shared_Bus: entity lapb.Shared_Bus
 generic map (
   REPORT_PREFIX   => "apb: shared bus: {{.EntityName}}: ",
@@ -75,7 +79,7 @@ generic map (
   reqs_i(0) => apb_com,{{.CrossbarSubblockPortsIn}}
   reqs_o(0) => apb_req{{.CrossbarSubblockPortsOut}}
 );
-
+{{ end }}
 
 register_access : process (clk_i) is
 
