@@ -25,6 +25,7 @@ type BlockEntityFormatters struct {
 	BusWidth   int64
 	EntityName string
 
+	SharedBus            bool
 	MasterCount          int64
 	RegCount             int64
 	InternalAddrBitCount int64
@@ -71,6 +72,7 @@ func genBlock(blk utils.Block, wg *sync.WaitGroup) {
 	fmts := BlockEntityFormatters{
 		BusWidth:             busWidth,
 		EntityName:           blk.Name,
+		SharedBus:            args.VhdlApb.SharedBus,
 		MasterCount:          blk.Block.Masters,
 		RegCount:             blk.Block.Sizes.Own,
 		InternalAddrBitCount: intAddrBitCount,

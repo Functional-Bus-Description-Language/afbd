@@ -71,7 +71,7 @@ begin
 apb_req <= apb_coms_i(0);
 apb_coms_o(0) <= apb_com;
 {{ else }}
-Shared_Bus: entity lapb.Shared_Bus
+{{ if .SharedBus }}Shared_Bus: entity lapb.Shared_Bus{{ else }}Crossbar: entity lapb.Crossbar{{ end }}
 generic map (
   REPORT_PREFIX   => "apb: shared bus: {{.EntityName}}: ",
   REQUESTER_COUNT => {{.MasterCount}},

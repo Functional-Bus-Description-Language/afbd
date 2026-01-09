@@ -3,8 +3,12 @@ package args
 var vhdlApbHelp string = `Afbd help for vhdl-apb target.
 
 Flags:
-  -help   Display help.
-  -no-psl Do not include PSL assertions. Not yet implemented.
+  -help        Display help.
+  -shared-bus  Use Shared Bus as internal interconnect instead of NxM Crossbar.
+               If the number of requesters or completers is greater than 1,
+               then a classic NxM Crossbar is used as an internal interconnect
+               by default. If this flag is present, a Shared Bus will be used
+               instead.
 
 Parameters:
   -path  Path for output files.
@@ -15,15 +19,15 @@ var VhdlApb vhdlApb
 type vhdlApb struct {
 	Present bool
 	// Flags
-	NoPsl bool
+	SharedBus bool
 	// Parameters
 	Path string
 }
 
 func isValidFlagVhdlApb(flag string) bool {
 	validFlags := map[string]bool{
-		"-help":   true,
-		"-no-psl": true,
+		"-help":       true,
+		"-shared-bus": true,
 	}
 
 	if _, ok := validFlags[flag]; ok {
@@ -47,8 +51,8 @@ func isValidParamVhdlApb(param string) bool {
 
 func setFlagVhdlApb(flag string) {
 	switch flag {
-	case "-no-psl":
-		VhdlApb.NoPsl = true
+	case "-shared-bus":
+		VhdlApb.SharedBus = true
 	}
 }
 

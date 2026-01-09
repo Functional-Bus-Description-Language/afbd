@@ -35,7 +35,12 @@ namespace eval afbd {
     set vhdlFilesDir [_getVhdlFilesDir {*}$args]
     if {$vhdlFilesDir != ""} {
       hbs::AddDep vhdl-types::src
-      hbs::AddDep vhdl::amba5::apb::shared-bus::src
+
+      if {"-shared-bus" in $args} {
+        hbs::AddDep vhdl::amba5::apb::shared-bus::src
+      } else {
+        hbs::AddDep vhdl::amba5::apb::crossbar::src
+      }
 
       hbs::SetLib "afbd"
 
