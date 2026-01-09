@@ -38,8 +38,15 @@ library work;
   use work.apb.all;
   use work.{{.EntityName}}_pkg.all;
 
-
-entity {{.EntityName}} is
+{{ if or (gt .MasterCount 1) (gt .SubblockCount 0) }}
+-- The SYNC_ADDR_DECODING generic determines whether the address decoder should be synchronized
+-- to the clock edge. If not synchronized, the whole transaction is shorter by one clock
+-- cycle (lower latency). However, in case of multiple requesters and completers, there might
+-- be timing closure problems.{{ end }}
+entity {{.EntityName}} is{{ if or (gt .MasterCount 1) (gt .SubblockCount 0) }}
+generic (
+  SYNC_ADDR_DECODING : boolean := true
+);{{ end }}
 port (
   clk_i : in std_logic;
   rst_i : in std_logic;
@@ -70,7 +77,8 @@ generic map (
   REQUESTER_COUNT => {{.MasterCount}},
   COMPLETER_COUNT => {{.SubblockCount}} + 1,
   ADDRS => C_ADDRS,
-  MASKS => C_MASKS
+  MASKS => C_MASKS,
+  SYNC_ADDR_DECODING => SYNC_ADDR_DECODING
 ) port map (
   arstn_i => not rst_i,
   clk_i   => clk_i,
