@@ -23,7 +23,7 @@ func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package) {
 		log.Fatalf("generate registerification json: %v", err)
 	}
 
-	byteArray, err := json.MarshalIndent(bus, "", "\t")
+	byteArray, err := json.MarshalIndent(bus, "", "  ")
 	if err != nil {
 		log.Fatalf("generate registerification json: %v", err)
 	}
@@ -43,7 +43,7 @@ func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package) {
 		log.Fatalf("generate constants json: %v", err)
 	}
 
-	byteArray, err = json.MarshalIndent(pkgsConsts, "", "\t")
+	byteArray, err = json.MarshalIndent(pkgsConsts, "", "  ")
 	if err != nil {
 		log.Fatalf("generate constants json: %v", err)
 	}
