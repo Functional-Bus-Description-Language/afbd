@@ -15,10 +15,10 @@ try:
 
     for i in range(10):
         print(f"calling foo function")
-        main.Foo()
+        main.foo()
 
         print(f"Reading count")
-        count = main.Count.read()
+        count = main.count.read()
 
         if count != i + 1:
             raise Exception(f"Wrong count, got {count}, expecting {i+1}")
