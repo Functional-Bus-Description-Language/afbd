@@ -19,13 +19,13 @@ try:
         want = random.randint(0, 2 ** 32 - 1)
 
         print(f"writing want = {want}")
-        main.Cfg.write(want)
+        main.cfg.write(want)
 
         print("calling proc")
-        got = main.Proc()
+        got = main.my_proc()
         assert got == want, f"got {got}, want {want}"
 
-        exit_cnt = main.Exit_Cnt.read()
+        exit_cnt = main.exit_cnt.read()
         assert exit_cnt == i + 1, f"exit_cnt = {exit_cnt}, want {i+1}"
 
     iface.end(0)

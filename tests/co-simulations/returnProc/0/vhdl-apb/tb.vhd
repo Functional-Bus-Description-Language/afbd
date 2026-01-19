@@ -19,8 +19,8 @@ architecture test of tb_cosim is
   signal clk : std_logic := '0';
 
   signal cfg : std_logic_vector(31 downto 0);
-  signal proc_out : proc_out_t;
-  signal proc_in  : proc_in_t;
+  signal proc_out : my_proc_out_t;
+  signal proc_in  : my_proc_in_t;
   signal exit_cnt : unsigned(3 downto 0) := (others => '0');
 
   signal req : requester_out_t;
@@ -43,8 +43,8 @@ begin
     apb_coms_o(0) => com,
 
     Cfg_o      => cfg,
-    Proc_o     => proc_out,
-    Proc_i     => proc_in,
+    my_Proc_o  => proc_out,
+    my_proc_i  => proc_in,
     Exit_Cnt_i => std_logic_vector(exit_cnt)
   );
 

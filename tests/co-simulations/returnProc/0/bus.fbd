@@ -1,5 +1,5 @@
 main bus
-  Cfg config
-  Proc proc
+  cfg config
+  my_proc proc
     ret return
-  Exit_Cnt status; width = 4
+  exit_cnt status; width = 4
