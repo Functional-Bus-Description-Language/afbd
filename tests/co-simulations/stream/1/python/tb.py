@@ -18,15 +18,15 @@ try:
     data = []
     for i in range(const['main']['DEPTH']):
         dataset = []
-        dataset.append(random.randint(0, 2 ** main.Add.params[0]['Width'] - 1))
-        dataset.append(random.randint(0, 2 ** main.Add.params[1]['Width'] - 1))
-        dataset.append(random.randint(0, 2 ** main.Add.params[2]['Width'] - 1))
+        dataset.append(random.randint(0, 2 ** main.add.params[0]['Width'] - 1))
+        dataset.append(random.randint(0, 2 ** main.add.params[1]['Width'] - 1))
+        dataset.append(random.randint(0, 2 ** main.add.params[2]['Width'] - 1))
         data.append(dataset)
 
     print(f"Writing downstream {const['main']['DEPTH']} times")
-    main.Add.write(data)
+    main.add.write(data)
 
-    results = main.Result.read(const['main']['DEPTH'])
+    results = main.result.read(const['main']['DEPTH'])
 
     for i, dataset in enumerate(data):
         got = results[i][0]

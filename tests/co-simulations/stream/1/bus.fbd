@@ -1,9 +1,9 @@
 const DEPTH = 16
 
 main bus
-  Add stream
-    A param; width = 40
-    B param; width = 18
-    C param; width = 6
-  Result stream
-    Res return; width = 41
+  add stream
+    a param; width = 40
+    b param; width = 18
+    c param; width = 6
+  result stream
+    res return; width = 41

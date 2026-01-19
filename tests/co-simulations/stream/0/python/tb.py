@@ -15,8 +15,8 @@ try:
     main, _ = afbd.generate(iface, REG_JSON)
 
     N = random.randint(1, 32)
-    print(f"Reading FIFO stream {N} times")
-    vals = main.FIFO.read(N)
+    print(f"Reading fifo stream {N} times")
+    vals = main.fifo.read(N)
 
     for i, v in enumerate(vals):
         assert i == v[0], f"read {v[0]}, expecting {i}"
