@@ -18,13 +18,13 @@ try:
 
     print(f"Generated random value: {val}")
 
-    print("Writing Cfg")
-    main.Cfg.write(val)
+    print("writing cfg")
+    main.cfg.write(val)
 
-    print("Reading Cfg")
-    read_val = main.Cfg.read()
+    print("Reading cfg")
+    read_val = main.cfg.read()
     if read_val != val:
-        raise Exception(f"Read wrong value form Cfg {read_val}")
+        raise Exception(f"Read wrong value form cfg {read_val}")
 
     iface.end(0)
 

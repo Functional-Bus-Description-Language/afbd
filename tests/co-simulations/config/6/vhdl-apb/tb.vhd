@@ -38,8 +38,8 @@ begin
     apb_coms_i(0) => req,
     apb_coms_o(0) => com,
 
-    Cfgs_o => cfgs,
-    Sts_i  => cfgs
+    cfgs_o => cfgs,
+    sts_i  => cfgs
   );
 
 end architecture;

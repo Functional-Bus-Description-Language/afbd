@@ -17,22 +17,22 @@ try:
 
     print("\n\nlist test")
     data = []
-    for _ in range(len(main.Cfgs)):
-        data.append(random.randint(0, 2**main.Cfgs.width - 1))
+    for _ in range(len(main.cfgs)):
+        data.append(random.randint(0, 2**main.cfgs.width - 1))
 
-    main.Cfgs.write(data)
-    rdata = main.Cfgs.read()
+    main.cfgs.write(data)
+    rdata = main.cfgs.read()
     assert rdata == data, f"invalid data read, got {rdata}, want {data}"
 
     # Clear data
     data = [0 for _ in range(10)]
-    main.Cfgs.write(data)
+    main.cfgs.write(data)
 
     print("\n\ndictionary test")
     data = {0: 123, 3: 9876, 7: 111, 9: 23456}
-    main.Cfgs.write(data)
-    rdata = main.Cfgs.read()
-    for i in range(len(main.Cfgs)):
+    main.cfgs.write(data)
+    rdata = main.cfgs.read()
+    for i in range(len(main.cfgs)):
         if i in data:
             assert rdata[i] == data[i], f"{i}: got {rdata[0]}, want {data[0]}"
         else:
@@ -40,17 +40,17 @@ try:
 
     # Clear data
     data = [0 for _ in range(10)]
-    main.Cfgs.write(data)
+    main.cfgs.write(data)
 
     print("\n\noffset test")
     offset = 3
     data = []
-    for _ in range(len(main.Cfgs) - offset):
-        data.append(random.randint(0, 2**main.Cfgs.width - 1))
+    for _ in range(len(main.cfgs) - offset):
+        data.append(random.randint(0, 2**main.cfgs.width - 1))
 
-    main.Cfgs.write(data, offset)
-    rdata = main.Cfgs.read()
-    for i in range(len(main.Cfgs)):
+    main.cfgs.write(data, offset)
+    rdata = main.cfgs.read()
+    for i in range(len(main.cfgs)):
         if i < offset:
             assert rdata[i] == 0, f"got {rdata[i]}, want 0"
         else:

@@ -14,13 +14,13 @@ iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 try:
     main, const = afbd.generate(iface, REG_JSON, CONST_JSON)
 
-    print(f"Writing VALID_VALUE ({const['main']['VALID_VALUE']}) to Cfg register")
-    main.Cfg.write(const['main']['VALID_VALUE'])
+    print(f"Writing VALID_VALUE ({const['main']['VALID_VALUE']}) to cfg register")
+    main.cfg.write(const['main']['VALID_VALUE'])
 
-    print("Reading Cfg")
-    read_val = main.Cfg.read()
+    print("Reading cfg")
+    read_val = main.cfg.read()
     if read_val != const['main']['VALID_VALUE']:
-        raise Exception(f"Read wrong value form Cfg {read_val}")
+        raise Exception(f"Read wrong value form cfg {read_val}")
 
     iface.end(0)
 

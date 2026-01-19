@@ -25,17 +25,17 @@ int main(int argc, char *argv[]) {
 	uint8_t cfg;
 	uint8_t st;
 
-	afbd_write(main_Cfg, val);
+	afbd_write(main_cfg, val);
 
-	afbd_read(main_Cfg, &cfg);
+	afbd_read(main_cfg, &cfg);
 	if (cfg != val) {
-		fprintf(stderr, "read wrong value from Cfg %d, expecting %d\n", cfg, val);
+		fprintf(stderr, "read wrong value from cfg %d, expecting %d\n", cfg, val);
 		cosim_iface_end(1);
 	}
 
-	afbd_read(main_Cfg, &st);
+	afbd_read(main_st, &st);
 	if (st != val) {
-		fprintf(stderr, "read wrong value from St %d, expecting %d\n", st, val);
+		fprintf(stderr, "read wrong value from st %d, expecting %d\n", st, val);
 		cosim_iface_end(1);
 	}
 

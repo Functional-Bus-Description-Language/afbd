@@ -1,5 +1,5 @@
 main bus
-  Cfg config
+  cfg config
     width = 7
-  St status
+  st status
     width = 7

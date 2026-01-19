@@ -17,13 +17,13 @@ try:
 
     value = 2 ** const['main']['WIDTH'] - 1
 
-    print(f"Writing VALID_VALUE ({value}) to Cfg register")
-    main.Cfg.write(value)
+    print(f"Writing VALID_VALUE ({value}) to cfg register")
+    main.cfg.write(value)
 
-    print("Reading Cfg")
-    read_val = main.Cfg.read()
+    print("Reading cfg")
+    read_val = main.cfg.read()
     if read_val != value:
-        raise Exception(f"Read wrong value form Cfg {read_val}")
+        raise Exception(f"Read wrong value form cfg {read_val}")
 
     iface.end(0)
 

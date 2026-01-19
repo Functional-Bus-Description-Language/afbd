@@ -1,4 +1,4 @@
 const VALID_VALUE = 2 ** 40 - 3
 
 main bus
-  Cfg config; width = 48; init-value = 0
+  cfg config; width = 48; init-value = 0
