@@ -38,7 +38,7 @@ begin
     apb_coms_i(0) => req,
     apb_coms_o(0) => com,
 
-    mask_o => mask,
+    my_mask_o => mask,
     st_i   => mask
   );
 
