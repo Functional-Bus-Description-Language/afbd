@@ -13,26 +13,26 @@ REG_JSON = sys.argv[3]
 iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
 try:
-    Main, _ = afbd.generate(iface, REG_JSON)
+    main, _ = afbd.generate(iface, REG_JSON)
 
     print("\n\nlist test")
     data = []
-    for _ in range(len(Main.Cfgs)):
-        data.append(random.randint(0, 2**Main.Cfgs.width - 1))
+    for _ in range(len(main.Cfgs)):
+        data.append(random.randint(0, 2**main.Cfgs.width - 1))
 
-    Main.Cfgs.write(data)
-    rdata = Main.Cfgs.read()
+    main.Cfgs.write(data)
+    rdata = main.Cfgs.read()
     assert rdata == data, f"invalid data read, got {rdata}, want {data}"
 
     # Clear data
     data = [0 for _ in range(10)]
-    Main.Cfgs.write(data)
+    main.Cfgs.write(data)
 
     print("\n\ndictionary test")
     data = {0: 123, 3: 9876, 7: 111, 9: 23456}
-    Main.Cfgs.write(data)
-    rdata = Main.Cfgs.read()
-    for i in range(len(Main.Cfgs)):
+    main.Cfgs.write(data)
+    rdata = main.Cfgs.read()
+    for i in range(len(main.Cfgs)):
         if i in data:
             assert rdata[i] == data[i], f"{i}: got {rdata[0]}, want {data[0]}"
         else:
@@ -40,17 +40,17 @@ try:
 
     # Clear data
     data = [0 for _ in range(10)]
-    Main.Cfgs.write(data)
+    main.Cfgs.write(data)
 
     print("\n\noffset test")
     offset = 3
     data = []
-    for _ in range(len(Main.Cfgs) - offset):
-        data.append(random.randint(0, 2**Main.Cfgs.width - 1))
+    for _ in range(len(main.Cfgs) - offset):
+        data.append(random.randint(0, 2**main.Cfgs.width - 1))
 
-    Main.Cfgs.write(data, offset)
-    rdata = Main.Cfgs.read()
-    for i in range(len(Main.Cfgs)):
+    main.Cfgs.write(data, offset)
+    rdata = main.Cfgs.read()
+    for i in range(len(main.Cfgs)):
         if i < offset:
             assert rdata[i] == 0, f"got {rdata[i]}, want 0"
         else:

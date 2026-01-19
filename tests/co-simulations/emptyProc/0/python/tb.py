@@ -11,14 +11,14 @@ REG_JSON = sys.argv[3]
 try:
     iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
-    Main, _ = afbd.generate(iface, REG_JSON)
+    main, _ = afbd.generate(iface, REG_JSON)
 
     for i in range(10):
         print(f"calling foo function")
-        Main.Foo()
+        main.Foo()
 
         print(f"Reading count")
-        count = Main.Count.read()
+        count = main.Count.read()
 
         if count != i + 1:
             raise Exception(f"Wrong count, got {count}, expecting {i+1}")

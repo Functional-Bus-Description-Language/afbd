@@ -1,4 +1,4 @@
-Main bus
+main bus
   Cfg0 config; width = 6; init-value = b"010101"
   St0  status; width = 6
 

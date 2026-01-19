@@ -12,15 +12,15 @@ REG_JSON = sys.argv[3]
 try:
     iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
-    Main, _ = afbd.generate(iface, REG_JSON)
+    main, _ = afbd.generate(iface, REG_JSON)
 
     sum = 0
-    for blk in Main.Blk:
+    for blk in main.Blk:
         x = random.randint(0, 2**blk.X.width-1)
         blk.X.write(x)
         sum += x
 
-    read_sum = Main.Sum.read()
+    read_sum = main.Sum.read()
 
     assert read_sum == sum, f"wrong read sum, got {read_sum}, want {sum}"
 

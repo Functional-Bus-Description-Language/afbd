@@ -12,19 +12,19 @@ REG_JSON = sys.argv[3]
 iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
 try:
-    Main, _ = afbd.generate(iface, REG_JSON)
+    main, _ = afbd.generate(iface, REG_JSON)
 
 
     print("\n\nTesting int constant")
     print("Reading St register")
-    read = Main.St.read()
-    assert read == Main.C, f"read value {read} differs from constant value {Main.C}"
+    read = main.St.read()
+    assert read == main.C, f"read value {read} differs from constant value {main.C}"
 
 
     print("\n\nTesting int list constants")
     print("Reading Stl register")
-    read = Main.Stl.read()
-    for i, v in enumerate(Main.CL):
+    read = main.Stl.read()
+    for i, v in enumerate(main.CL):
         assert (
             read[i] == v
         ), f"read value {read[i]} differs from constant value {v}"

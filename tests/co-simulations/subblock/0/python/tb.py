@@ -12,9 +12,9 @@ REG_JSON = sys.argv[3]
 try:
     iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
-    Main, _ = afbd.generate(iface, REG_JSON)
+    main, _ = afbd.generate(iface, REG_JSON)
 
-    subblocks = [Main.Blk0, Main.Blk1, Main.Blk1.Blk2]
+    subblocks = [main.Blk0, main.Blk1, main.Blk1.Blk2]
 
     for i, sb in enumerate(subblocks):
         print(f"Testing access to blk{i}")

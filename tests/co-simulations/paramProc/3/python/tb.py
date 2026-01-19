@@ -12,16 +12,16 @@ REG_JSON = sys.argv[3]
 try:
     iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
-    Main, _ = afbd.generate(iface, REG_JSON)
+    main, _ = afbd.generate(iface, REG_JSON)
 
     s = random.randint(0, 2 ** 16 - 1)
     c = random.randint(2**33, 2 ** 40 - 1)
 
     print(f"Calling add function, s = {s}, c = {c}")
-    Main.Add(s, c)
+    main.Add(s, c)
 
     print(f"Reading result")
-    result = Main.Result.read()
+    result = main.Result.read()
 
     if s + c != result:
         print(f"Wrong result, got {result}, expecting {s+c}")

@@ -14,14 +14,14 @@ CLK_PERIOD = 10
 iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
 try:
-    Main, _ = afbd.generate(iface, REG_JSON)
+    main, _ = afbd.generate(iface, REG_JSON)
 
-    id = Main.ID.read()
-    assert id == Main.ID.value, f"Read wrong ID {id}, expecting {Main.ID.value}"
+    id = main.ID.read()
+    assert id == main.ID.value, f"Read wrong ID {id}, expecting {main.ID.value}"
     print(f"ID: {id}\n")
 
-    ts = Main.TIMESTAMP.read()
-    assert ts == Main.TIMESTAMP.value, f"Read wrong TIMESTAMP {ts}, expecting {Main.TIMESTAMP.value}"
+    ts = main.TIMESTAMP.read()
+    assert ts == main.TIMESTAMP.value, f"Read wrong TIMESTAMP {ts}, expecting {main.TIMESTAMP.value}"
     print(f"Timestamp: {ts}\n")
 
     iface.end(0)

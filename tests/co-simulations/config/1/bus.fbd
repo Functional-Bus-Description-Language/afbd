@@ -1,2 +1,2 @@
-Main bus
+main bus
   Cfg config; width = 48; atomic = false

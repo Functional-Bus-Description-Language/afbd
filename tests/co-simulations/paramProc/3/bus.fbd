@@ -1,4 +1,4 @@
-Main bus
+main bus
   Add proc
     s param; width = 16
     c param; width = 40

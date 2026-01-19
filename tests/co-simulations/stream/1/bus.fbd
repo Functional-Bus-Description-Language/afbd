@@ -1,6 +1,6 @@
 const DEPTH = 16
 
-Main bus
+main bus
   Add stream
     A param; width = 40
     B param; width = 18

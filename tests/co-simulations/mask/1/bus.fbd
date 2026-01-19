@@ -1,4 +1,4 @@
-Main bus
+main bus
   const WIDTH = 40
   Mask mask; width = WIDTH
   St status; width = WIDTH

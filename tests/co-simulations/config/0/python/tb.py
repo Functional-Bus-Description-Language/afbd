@@ -12,22 +12,22 @@ REG_JSON = sys.argv[3]
 iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
 try:
-    Main, _ = afbd.generate(iface, REG_JSON)
+    main, _ = afbd.generate(iface, REG_JSON)
 
     val = random.randint(0, 2 ** 7 - 1)
 
     print(f"Generated random value: {val}")
 
     print("Writing Cfg")
-    Main.Cfg.write(val)
+    main.Cfg.write(val)
 
     print("Reading Cfg")
-    read_val = Main.Cfg.read()
+    read_val = main.Cfg.read()
     if read_val != val:
         raise Exception(f"Read wrong value form Cfg {read_val}")
 
     print("Reading St")
-    read_val = Main.St.read()
+    read_val = main.St.read()
     if read_val != val:
         raise Exception(f"Read wrong value form St {read_val}")
 

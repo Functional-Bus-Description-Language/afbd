@@ -118,7 +118,7 @@ func Parse() {
 		Path = "afbd"
 	}
 	if MainBus == "" {
-		MainBus = "Main"
+		MainBus = "main"
 	}
 
 	if !CSync.Present && !Json.Present && !Python.Present && !VhdlApb.Present {

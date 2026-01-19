@@ -1,4 +1,4 @@
-Main bus
+main bus
   Cfg config
   Proc proc
     ret return

@@ -13,7 +13,7 @@ REG_JSON = sys.argv[3]
 iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
 try:
-    Main, _ = afbd.generate(iface, REG_JSON)
+    main, _ = afbd.generate(iface, REG_JSON)
 
     lower = random.randint(0, 2 ** 30  - 1)
     upper = random.randint(0, 2 ** 20  - 1)
@@ -21,13 +21,13 @@ try:
     print(f"Generated random values: lower = {lower}, upper = {upper}")
 
     print("Writing Lower")
-    Main.Lower.write(lower)
+    main.Lower.write(lower)
 
     print("Writing Upper")
-    Main.Upper.write(upper)
+    main.Upper.write(upper)
 
     print("Reading St")
-    st = Main.St.read()
+    st = main.St.read()
     if st != (upper << 30) | lower:
         raise Exception(f"Read wrong value form St {st}, expects {(upper << 30) | lower}")
 

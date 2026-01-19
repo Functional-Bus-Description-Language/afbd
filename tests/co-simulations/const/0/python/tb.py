@@ -13,12 +13,12 @@ CONST_JSON = sys.argv[4]
 iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
 try:
-    Main, consts = afbd.generate(iface, REG_JSON, CONST_JSON)
+    main, consts = afbd.generate(iface, REG_JSON, CONST_JSON)
 
 
     print("\n\nTesting int constant")
     print("Reading St register")
-    read = Main.St.read()
+    read = main.St.read()
     assert (
         read == consts['main']['C']
     ), f"read value {read} differs from constant value {afbd.mainPkg.C}"
@@ -26,7 +26,7 @@ try:
 
     print("\n\nTesting int list constants")
     print("Reading Stl register")
-    read = Main.Stl.read()
+    read = main.Stl.read()
     for i, v in enumerate(consts['main']['CL']):
         assert (
             read[i] == v

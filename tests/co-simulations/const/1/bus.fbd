@@ -1,4 +1,4 @@
-Main bus
+main bus
   const C = 11
   const CL = [17, 123]
   St status; width = C

@@ -12,11 +12,11 @@ REG_JSON = sys.argv[3]
 try:
     iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
-    Main, _ = afbd.generate(iface, REG_JSON)
+    main, _ = afbd.generate(iface, REG_JSON)
 
     N = random.randint(1, 32)
     print(f"Reading FIFO stream {N} times")
-    vals = Main.FIFO.read(N)
+    vals = main.FIFO.read(N)
 
     for i, v in enumerate(vals):
         assert i == v[0], f"read {v[0]}, expecting {i}"

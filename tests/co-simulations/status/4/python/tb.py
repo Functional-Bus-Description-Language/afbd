@@ -12,10 +12,10 @@ REG_JSON = sys.argv[3]
 iface = cosim.Iface(WRITE_FIFO_PATH, READ_FIFO_PATH)
 
 try:
-    Main, _ = afbd.generate(iface, REG_JSON)
+    main, _ = afbd.generate(iface, REG_JSON)
 
     print("Reading ST")
-    read_val = Main.St.read()
+    read_val = main.St.read()
     # The expected value is magic. It has been manually checked,
     # and it may change in case of BFM changes. It depends on how much time
     # passes in the simulation from the start to the first read.

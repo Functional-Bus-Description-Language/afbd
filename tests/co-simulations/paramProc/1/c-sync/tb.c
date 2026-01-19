@@ -6,7 +6,7 @@
 #include "cosim_iface.h"
 
 #include "afbd.h"
-#include "Main.h"
+#include "main.h"
 #define AFBD_IFACE &iface
 
 
@@ -27,14 +27,14 @@ int main(int argc, char *argv[]) {
 
 	uint32_t err;
 
-	err = afbd_Main_Add(&iface, a, b);
+	err = afbd_main_Add(&iface, a, b);
 	if (err) {
 		fprintf(stderr, "error calling Add function: %d", err);
 		cosim_iface_end(1);
 	}
 
 	uint32_t result;
-	err = afbd_read(Main_Result, &result);
+	err = afbd_read(main_Result, &result);
 	if (err) {
 		fprintf(stderr, "error reading Result: %d", err);
 		cosim_iface_end(1);

@@ -1,4 +1,4 @@
-Main bus
+main bus
   const
     S0 = 2**34 - 1
     S1 = 2**34 - 2
