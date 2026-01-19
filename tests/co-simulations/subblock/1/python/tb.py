@@ -15,12 +15,12 @@ try:
     main, _ = afbd.generate(iface, REG_JSON)
 
     sum = 0
-    for blk in main.Blk:
-        x = random.randint(0, 2**blk.X.width-1)
-        blk.X.write(x)
+    for blk in main.blk:
+        x = random.randint(0, 2**blk.x.width-1)
+        blk.x.write(x)
         sum += x
 
-    read_sum = main.Sum.read()
+    read_sum = main.sum.read()
 
     assert read_sum == sum, f"wrong read sum, got {read_sum}, want {sum}"
 

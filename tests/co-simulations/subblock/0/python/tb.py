@@ -14,21 +14,21 @@ try:
 
     main, _ = afbd.generate(iface, REG_JSON)
 
-    subblocks = [main.Blk0, main.Blk1, main.Blk1.Blk2]
+    subblocks = [main.blk0, main.blk1, main.blk1.blk2]
 
     for i, sb in enumerate(subblocks):
         print(f"Testing access to blk{i}")
         r = random.randrange(0, 2 ** 32 - 1)
         print(f"Writing value {r} to cfg register")
-        sb.Cfg.write(r)
+        sb.cfg.write(r)
 
-        print(f"Reading Cfg register")
-        read = sb.Cfg.read()
-        assert read == r, f"Read wrong value from Cfg register {read}"
+        print(f"Reading cfg register")
+        read = sb.cfg.read()
+        assert read == r, f"Read wrong value from cfg register {read}"
 
-        print(f"Reading St register")
-        read = sb.St.read()
-        assert read == r, f"Read wrong value from St register {read}"
+        print(f"Reading st register")
+        read = sb.st.read()
+        assert read == r, f"Read wrong value from st register {read}"
 
     iface.end(0)
 
