@@ -1,4 +1,4 @@
 main bus
-  Lower config; width = 30
-  Upper config; width = 20
-  St status; width = 50; atomic = false
+  lower config; width = 30
+  upper config; width = 20
+  st status; width = 50; atomic = false

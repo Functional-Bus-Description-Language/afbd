@@ -20,16 +20,16 @@ try:
 
     print(f"Generated random values: lower = {lower}, upper = {upper}")
 
-    print("Writing Lower")
-    main.Lower.write(lower)
+    print("Writing lower")
+    main.lower.write(lower)
 
-    print("Writing Upper")
-    main.Upper.write(upper)
+    print("Writing upper")
+    main.upper.write(upper)
 
-    print("Reading St")
-    st = main.St.read()
+    print("Reading st")
+    st = main.st.read()
     if st != (upper << 30) | lower:
-        raise Exception(f"Read wrong value form St {st}, expects {(upper << 30) | lower}")
+        raise Exception(f"Read wrong value form st {st}, expects {(upper << 30) | lower}")
 
     iface.end(0)
 

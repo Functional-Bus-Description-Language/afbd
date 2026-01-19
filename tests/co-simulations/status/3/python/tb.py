@@ -15,49 +15,49 @@ try:
 
     print("Testing count % items per access = 0 scenerio.")
 
-    values = main.Status_array0.read()
+    values = main.status_array0.read()
     assert len(values) == 8
     for i, v in enumerate(values):
         assert v == i, f"got {v}, expecting {i}"
 
     idx = [2, 7]
-    values = main.Status_array0.read(idx)
+    values = main.status_array0.read(idx)
     assert values[0] == 2
     assert values[1] == 7
 
-    value = main.Status_array0.read(5)
+    value = main.status_array0.read(5)
     assert value == 5
 
     print("Testing count < items per access scenario.")
 
-    values = main.Status_array1.read()
+    values = main.status_array1.read()
     assert len(values) == 4
     for i, v in enumerate(values):
         assert v == i
 
     idx = [0, 3]
-    values = main.Status_array1.read(idx)
+    values = main.status_array1.read(idx)
     assert values[0] == 0
     assert values[1] == 3
 
-    value = main.Status_array1.read(2)
+    value = main.status_array1.read(2)
     assert value == 2
 
     print(
         "Testing scenerio when the number of items in the last register is different."
     )
 
-    values = main.Status_array2.read()
+    values = main.status_array2.read()
     assert len(values) == 6
     for i, v in enumerate(values):
         assert v == i
 
     idx = [1, 5]
-    values = main.Status_array2.read(idx)
+    values = main.status_array2.read(idx)
     assert values[0] == 1
     assert values[1] == 5
 
-    value = main.Status_array2.read(0)
+    value = main.status_array2.read(0)
     assert value == 0
 
     iface.end(0)

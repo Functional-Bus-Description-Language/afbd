@@ -15,17 +15,17 @@ try:
     main, _ = afbd.generate(iface, REG_JSON)
 
     print("Testing whole array read")
-    data = main.Sts.read()
+    data = main.sts.read()
     assert data[0] == main.S0
     assert data[1] == main.S1
     assert data[2] == main.S2
 
     print("\nTesting index read")
-    assert main.Sts.read(0) == main.S0
-    assert main.Sts.read(1) == main.S1
-    assert main.Sts.read(2) == main.S2
+    assert main.sts.read(0) == main.S0
+    assert main.sts.read(1) == main.S1
+    assert main.sts.read(2) == main.S2
 
-    data = main.Sts.read([2, 0, 1])
+    data = main.sts.read([2, 0, 1])
     assert data[0] == main.S2
     assert data[1] == main.S0
     assert data[2] == main.S1

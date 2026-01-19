@@ -12,17 +12,17 @@ try:
 
     main, _ = afbd.generate(iface, REG_JSON)
 
-    values = main.Status_array.read()
+    values = main.status_array.read()
     assert len(values) == 9
     for i, v in enumerate(values):
         assert v == i
 
     idx = [2, 7]
-    values = main.Status_array.read(idx)
+    values = main.status_array.read(idx)
     assert values[0] == 2
     assert values[1] == 7
 
-    value = main.Status_array.read(5)
+    value = main.status_array.read(5)
     assert value == 5
 
     iface.end(0)

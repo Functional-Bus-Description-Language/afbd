@@ -15,12 +15,12 @@ try:
     main, _ = afbd.generate(iface, REG_JSON)
 
     print("Reading ST")
-    read_val = main.St.read()
+    read_val = main.st.read()
     # The expected value is magic. It has been manually checked,
     # and it may change in case of BFM changes. It depends on how much time
     # passes in the simulation from the start to the first read.
     if read_val != 0xFDFFFFFFFF:
-        raise Exception(f"Read wrong value form St {read_val}")
+        raise Exception(f"Read wrong value form st {read_val}")
 
     iface.end(0)
 
