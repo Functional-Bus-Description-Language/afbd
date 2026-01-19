@@ -1,5 +1,5 @@
 main bus
   const C = 11
   const CL = [17, 123]
-  St status; width = C
-  Stl [2]status; width = 8
+  st status; width = C
+  stl [2]status; width = 8

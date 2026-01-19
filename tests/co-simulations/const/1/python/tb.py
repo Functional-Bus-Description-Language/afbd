@@ -16,14 +16,14 @@ try:
 
 
     print("\n\nTesting int constant")
-    print("Reading St register")
-    read = main.St.read()
+    print("Reading st register")
+    read = main.st.read()
     assert read == main.C, f"read value {read} differs from constant value {main.C}"
 
 
     print("\n\nTesting int list constants")
-    print("Reading Stl register")
-    read = main.Stl.read()
+    print("Reading stl register")
+    read = main.stl.read()
     for i, v in enumerate(main.CL):
         assert (
             read[i] == v
