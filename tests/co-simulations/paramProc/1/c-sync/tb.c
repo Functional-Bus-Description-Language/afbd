@@ -23,20 +23,20 @@ int main(int argc, char *argv[]) {
 
 	printf("generated random values: a = %d, b = %d\n", a, b);
 
-	printf("calling Add function\n");
+	printf("calling add function\n");
 
 	uint32_t err;
 
-	err = afbd_main_Add(&iface, a, b);
+	err = afbd_main_add(&iface, a, b);
 	if (err) {
-		fprintf(stderr, "error calling Add function: %d", err);
+		fprintf(stderr, "error calling add function: %d", err);
 		cosim_iface_end(1);
 	}
 
 	uint32_t result;
-	err = afbd_read(main_Result, &result);
+	err = afbd_read(main_result, &result);
 	if (err) {
-		fprintf(stderr, "error reading Result: %d", err);
+		fprintf(stderr, "error reading result: %d", err);
 		cosim_iface_end(1);
 	}
 

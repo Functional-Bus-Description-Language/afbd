@@ -20,10 +20,10 @@ try:
     sum = sum(vec)
 
     print(f"Calling add function, vec = {vec}")
-    main.Add(vec)
+    main.add(vec)
 
     print(f"Reading result")
-    result = main.Result.read()
+    result = main.result.read()
 
     if result != sum:
         print(f"Wrong result, got {result}, expecting {sum}")

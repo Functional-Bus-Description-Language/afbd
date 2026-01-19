@@ -1,8 +1,8 @@
 main bus
-  Add proc
+  add proc
     a param
       width = 16
     b param
       width = 16
-  Result status
+  result status
     width = 17

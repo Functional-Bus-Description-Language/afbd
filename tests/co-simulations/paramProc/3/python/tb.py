@@ -18,10 +18,10 @@ try:
     c = random.randint(2**33, 2 ** 40 - 1)
 
     print(f"Calling add function, s = {s}, c = {c}")
-    main.Add(s, c)
+    main.add(s, c)
 
     print(f"Reading result")
-    result = main.Result.read()
+    result = main.result.read()
 
     if s + c != result:
         print(f"Wrong result, got {result}, expecting {s+c}")
