@@ -45,7 +45,7 @@ func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package) {
 		log.Fatalf("generate C-Sync: %v", err)
 	}
 
-	addrType = c.SizeToAddrType(bus.Sizes.BlockAligned)
+	addrType = c.SizeToAddrType(bus.Sizes.Aligned)
 	readType = c.WidthToReadType(bus.Width)
 	writeType = c.WidthToWriteType(bus.Width)
 

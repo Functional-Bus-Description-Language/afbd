@@ -80,7 +80,7 @@ func genBlock(blk utils.Block, wg *sync.WaitGroup) {
 		RegistersAccess:      make(RegisterMap),
 	}
 
-	addrBitsCount := int(math.Log2(float64(blk.Block.Sizes.BlockAligned)))
+	addrBitsCount := int(math.Log2(float64(blk.Block.Sizes.Aligned)))
 
 	mask := 0
 	if len(blk.Block.Subblocks) > 0 {
@@ -180,12 +180,12 @@ func genSubblock(
 			", %d => \"%032b\"", fmts.SubblockCount, subblockAddr<<2,
 		)
 
-		mask := ((1 << superBlockAddrBitsCount) - 1) ^ ((1 << int(math.Log2(float64(sb.Sizes.BlockAligned)))) - 1)
+		mask := ((1 << superBlockAddrBitsCount) - 1) ^ ((1 << int(math.Log2(float64(sb.Sizes.Aligned)))) - 1)
 		fmts.MaskValues += fmt.Sprintf(
 			", %d => \"%032b\"", fmts.SubblockCount, mask<<2,
 		)
 
-		subblockAddr += sb.Sizes.BlockAligned
+		subblockAddr += sb.Sizes.Aligned
 	}
 }
 
