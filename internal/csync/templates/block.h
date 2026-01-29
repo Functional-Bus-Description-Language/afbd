@@ -1,4 +1,5 @@
 #ifndef _AFBD_{{.BlockName}}_H_
+#define _AFBD_{{.BlockName}}_H_
 
 #include "afbd.h"
 {{.Code}}

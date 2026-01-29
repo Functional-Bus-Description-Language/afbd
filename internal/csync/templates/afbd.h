@@ -1,8 +1,12 @@
 #ifndef _AFBD_AFBD_H_
 #define _AFBD_AFBD_H_
 
-#include <stddef.h>
-#include <stdint.h>
+#ifdef __KERNEL__
+	#include <linux/types.h>
+#else
+	#include <stddef.h>
+	#include <stdint.h>
+#endif
 
 typedef struct {
 	int (*read)(const {{.AddrType}} addr, {{.ReadType}} const data);
