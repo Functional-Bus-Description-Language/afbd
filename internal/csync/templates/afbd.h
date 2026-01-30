@@ -1,7 +1,7 @@
 #ifndef _AFBD_AFBD_H_
 #define _AFBD_AFBD_H_
 
-#ifdef __KERNEL__
+#if defined(__KERNEL__) && defined(__linux__)
 	#include <linux/types.h>
 #else
 	#include <stddef.h>
