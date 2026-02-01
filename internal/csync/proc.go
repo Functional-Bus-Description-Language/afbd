@@ -2,11 +2,13 @@ package csync
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Functional-Bus-Description-Language/afbd/internal/c"
 	_ "github.com/Functional-Bus-Description-Language/afbd/internal/utils"
 	"github.com/Functional-Bus-Description-Language/go-fbdl/pkg/fbdl/fn"
-	"strings"
+
+	"github.com/Functional-Bus-Description-Language/afbd/internal/args"
 )
 
 func genProc(p *fn.Proc, blk *fn.Block, hFmts *BlockHFormatters, cFmts *BlockCFormatters) {
@@ -14,9 +16,13 @@ func genProc(p *fn.Proc, blk *fn.Block, hFmts *BlockHFormatters, cFmts *BlockCFo
 
 	hFmts.Code += "\n" + sig + ";\n"
 
-	cFmts.Code += fmt.Sprintf("\n%s {\n", sig)
+	cFmts.Code += fmt.Sprintf("\n%s\n{\n", sig)
 	if len(p.Params) == 0 && len(p.Returns) == 0 {
-		cFmts.Code += fmt.Sprintf("\treturn iface->write(%d, 0);\n", blk.StartAddr()+*p.CallAddr)
+		callAddr := *p.CallAddr
+		if !args.CSync.OffsetAddr {
+			callAddr += blk.StartAddr()
+		}
+		cFmts.Code += fmt.Sprintf("\treturn iface->write(iface, %d, 0);\n", callAddr)
 	}
 
 	if len(p.Params) > 0 {
@@ -34,7 +40,7 @@ func genProcSignature(p *fn.Proc, blk *fn.Block, hFmts *BlockHFormatters) string
 	prefix := "int afbd_" + hFmts.BlockName + "_" + p.Name
 
 	params := strings.Builder{}
-	params.WriteString("const afbd_iface_t * const iface")
+	params.WriteString("afbd_iface_t * const iface")
 
 	for _, p := range p.Params {
 		params.WriteString(
@@ -68,7 +74,12 @@ func genProcParamsAccessSingleWrite(p *fn.Proc, blk *fn.Block, cFmts *BlockCForm
 }
 
 func genProcParamsAccessSingleWriteNoDelayNoReturns(p *fn.Proc, blk *fn.Block, cFmts *BlockCFormatters) {
-	cFmts.Code += fmt.Sprintf("\treturn iface->write(%d, ", blk.StartAddr()+*p.CallAddr)
+	callAddr := *p.CallAddr
+	if !args.CSync.OffsetAddr {
+		callAddr += blk.StartAddr()
+	}
+
+	cFmts.Code += fmt.Sprintf("\treturn iface->write(iface, %d, ", callAddr)
 	for i, p := range p.Params {
 		if i != 0 {
 			cFmts.Code += " | "
@@ -95,21 +106,26 @@ func genProcParamsAccessBlockWrite(p *fn.Proc, blk *fn.Block, cFmts *BlockCForma
 func genProcParamsAccessBlockWriteNoDelayNoReturns(proc *fn.Proc, blk *fn.Block, cFmts *BlockCFormatters) {
 	cFmts.Code += fmt.Sprintf("\t%s buf[%d] = {0};\n\n", c.WidthToWriteType(blk.Width), proc.ParamsBufSize())
 
-	for _, p := range proc.Params {
-		switch acs := p.Access; acs.Type {
+	for _, param := range proc.Params {
+		switch acs := param.Access; acs.Type {
 		case "SingleOneReg":
 			cFmts.Code += fmt.Sprintf(
 				"\tbuf[%d] |= %s << %d;\n",
-				acs.StartAddr-proc.ParamsStartAddr(), p.Name, acs.StartBit,
+				acs.StartAddr-proc.ParamsStartAddr(), param.Name, acs.StartBit,
 			)
 		default:
 			panic("unimplemented")
 		}
 	}
 
+	startAddr := proc.ParamsStartAddr()
+	if !args.CSync.OffsetAddr {
+		startAddr += blk.StartAddr()
+	}
+
 	cFmts.Code += fmt.Sprintf(
-		"\n\treturn iface->writeb(%d, buf, %d);\n",
-		blk.StartAddr()+proc.ParamsStartAddr(), proc.ParamsBufSize(),
+		"\n\treturn iface->writeb(iface, %d, buf, %d);\n",
+		startAddr, proc.ParamsBufSize(),
 	)
 }
 
@@ -121,13 +137,18 @@ func genProcReturnsAccess(p *fn.Proc, blk *fn.Block, cFmts *BlockCFormatters) {
 	}
 }
 
-func genProcReturnsAccessSingleRead(p *fn.Proc, blk *fn.Block, cFmts *BlockCFormatters) {
+func genProcReturnsAccessSingleRead(proc *fn.Proc, blk *fn.Block, cFmts *BlockCFormatters) {
 	cFmts.Code += fmt.Sprintf("\t%s _rdata;\n", c.WidthToWriteType(blk.Width))
 
-	cFmts.Code += fmt.Sprintf("\tconst int err = iface->read(%d, &_rdata);\n", blk.StartAddr()+*p.ExitAddr)
+	exitAddr := *proc.ExitAddr
+	if !args.CSync.OffsetAddr {
+		exitAddr += blk.StartAddr()
+	}
+
+	cFmts.Code += fmt.Sprintf("\tconst int err = iface->read(%d, &_rdata);\n", exitAddr)
 	cFmts.Code += "\tif (err)\n\t\t return err;\n"
 
-	for _, r := range p.Returns {
+	for _, r := range proc.Returns {
 		switch acs := r.Access; acs.Type {
 		case "SingleOneReg":
 			cFmts.Code += fmt.Sprintf(

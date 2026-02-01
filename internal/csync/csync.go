@@ -75,4 +75,8 @@ func Generate(bus *fn.Block, pkgsConsts map[string]*pkg.Package) {
 	if err != nil {
 		log.Fatalf("generate C-Sync: %v", err)
 	}
+
+	if args.CSync.MmapIface {
+		GenMmapIface()
+	}
 }

@@ -8,12 +8,21 @@
 	#include <stdint.h>
 #endif
 
-typedef struct {
-	int (*read)(const {{.AddrType}} addr, {{.ReadType}} const data);
-	int (*write)(const {{.AddrType}} addr, const {{.WriteType}} data);
-	int (*readb)(const {{.AddrType}} addr, {{.ReadType}} buf, size_t count);
-	int (*writeb)(const {{.AddrType}} addr, const {{.WriteType}} * buf, size_t count);
-} afbd_iface_t;
+typedef struct afbd_iface afbd_iface_t;
+
+struct afbd_iface {
+	// Single read
+	int (*read)(afbd_iface_t * const iface, const {{.AddrType}} addr, {{.ReadType}} const data);
+	// Single write
+	int (*write)(afbd_iface_t * const iface, const {{.AddrType}} addr, const {{.WriteType}} data);
+	// Block read
+	int (*readb)(afbd_iface_t * const iface, const {{.AddrType}} addr, {{.ReadType}} buf, size_t count);
+	// Block write
+	int (*writeb)(afbd_iface_t * const iface, const {{.AddrType}} addr, const {{.WriteType}} * buf, size_t count);
+	// Optional custom data used as required to implement the interface.
+	// For example, a memory-mapped interface may store memory pointer here.
+	void *data;
+};
 
 #define afbd_read(elem, data) (afbd_ ## elem ## _read(AFBD_IFACE, data))
 #define afbd_write(elem, data) (afbd_ ## elem ## _write(AFBD_IFACE, data))

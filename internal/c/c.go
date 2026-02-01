@@ -53,6 +53,15 @@ func WidthToWriteType(width int64) Type {
 	return Uint8{}
 }
 
+// WidthToWordByteShift returns byte shift required to advance to the next word in memory.
+func WidthToWordByteShift(width int64) int64 {
+	if width%8 != 0 {
+		panic(fmt.Sprintf("unsupported word width %d", width))
+	}
+
+	return width / 8
+}
+
 // MaskToValue returns bit mask represented as value based on the masks start bit and end bit.
 // The mask is always shifted to the right.
 // For example, the mask for start bit 5 and end bit 8 is 0xF, not 0xF0.
