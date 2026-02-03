@@ -3,6 +3,7 @@ package csync
 import (
 	_ "embed"
 	"log"
+	"math"
 	"os"
 	"path"
 	"text/template"
@@ -20,22 +21,22 @@ var mmapSourceTmplStr string
 var mmapSourceTmpl = template.Must(template.New("C-Sync mmap-iface.c").Parse(mmapSourceTmplStr))
 
 type mmapFormatters struct {
-	AddrType       string
-	ReadType       string
-	WriteType      string
-	WordByteShift  int64
-	LinuxReadFunc  string
-	LinuxWriteFunc string
+	AddrType            string
+	ReadType            string
+	WriteType           string
+	WordByteShiftInBits int64
+	LinuxReadFunc       string
+	LinuxWriteFunc      string
 }
 
 func GenMmapIface() {
 	fmts := mmapFormatters{
-		AddrType:       addrType.String(),
-		ReadType:       readType.String(),
-		WriteType:      writeType.String(),
-		WordByteShift:  c.WidthToWordByteShift(busWidth),
-		LinuxReadFunc:  c.WidthToLinuxReadFunc(busWidth),
-		LinuxWriteFunc: c.WidthToLinuxWriteFunc(busWidth),
+		AddrType:            addrType.String(),
+		ReadType:            readType.String(),
+		WriteType:           writeType.String(),
+		WordByteShiftInBits: int64(math.Log2(float64(c.WidthToWordByteShift(busWidth)))),
+		LinuxReadFunc:       c.WidthToLinuxReadFunc(busWidth),
+		LinuxWriteFunc:      c.WidthToLinuxWriteFunc(busWidth),
 	}
 
 	// Generate header file
