@@ -6,7 +6,8 @@ functions.
 
 Flags:
   -help         Display help.
-  -mmap-iface   Generate interface implementation for memory-mapped IO.
+  -linux-mmap-iface
+                Generate Linux memory-mapped IO interface implementation.
   -no-asserts   Do not include asserts. Not yet implemented.
   -offset-addr  Use block inner offset addresses instead of global addresses.
 
@@ -19,19 +20,19 @@ var CSync cSync
 type cSync struct {
 	Present bool
 	// Flags
-	MmapIface  bool
-	NoAsserts  bool
-	OffsetAddr bool
+	LinuxMmapIface bool
+	NoAsserts      bool
+	OffsetAddr     bool
 	// Parameters
 	Path string
 }
 
 func isValidFlagCSync(flag string) bool {
 	validFlags := map[string]bool{
-		"-help":        true,
-		"-mmap-iface":  true,
-		"-no-asserts":  true,
-		"-offset-addr": true,
+		"-help":             true,
+		"-linux-mmap-iface": true,
+		"-no-asserts":       true,
+		"-offset-addr":      true,
 	}
 
 	if _, ok := validFlags[flag]; ok {
@@ -55,8 +56,8 @@ func isValidParamCSync(param string) bool {
 
 func setFlagCSync(flag string) {
 	switch flag {
-	case "-mmap-iface":
-		CSync.MmapIface = true
+	case "-linux-mmap-iface":
+		CSync.LinuxMmapIface = true
 	case "-no-asserts":
 		CSync.NoAsserts = true
 	case "-offset-addr":

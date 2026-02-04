@@ -23,7 +23,8 @@ static uint32_t write_count;
 static uint32_t read_count;
 static uint32_t rmw_count;
 
-static void remove_fifos(void) {
+static void remove_fifos(void)
+{
 	printf("Removing FIFOs\n");
 	// Ignore errors, file probably doesn't exist yet.
 	remove(write_fifo_path);
@@ -32,7 +33,8 @@ static void remove_fifos(void) {
 	read_fifo = NULL;
 }
 
-static void make_fifos(void) {
+static void make_fifos(void)
+{
 	remove_fifos();
 	printf("Making FIFOs\n");
 	if (mkfifo(write_fifo_path, 0755)) {
@@ -45,7 +47,8 @@ static void make_fifos(void) {
 	}
 }
 
-static void cosim_iface_wait(uint32_t time_ns) {
+static void cosim_iface_wait(uint32_t time_ns)
+{
 	printf("wait for %u ns", time_ns);
 
 	int count;
@@ -70,7 +73,8 @@ static void cosim_iface_wait(uint32_t time_ns) {
 	}
 }
 
-static int cosim_iface_write(afbd_iface_t *iface, const uint8_t addr, const uint32_t data) {
+static int cosim_iface_write(afbd_iface_t *iface, const uintptr_t addr, const uint32_t data)
+{
 	const uint8_t byte_addr = addr << 2;
 
 	if (delay_function) {
@@ -105,12 +109,14 @@ static int cosim_iface_write(afbd_iface_t *iface, const uint8_t addr, const uint
 }
 
 
-static int cosim_iface_writeb(afbd_iface_t *iface, const uint8_t addr, const uint32_t * buf, size_t count) {
+static int cosim_iface_writeb(afbd_iface_t *iface, const uintptr_t addr, const uint32_t * buf, size_t count)
+{
 	fprintf(stderr, "cosim iface: cosim_iface_writeb unimplemented");
 	exit(EXIT_FAILURE);
 }
 
-static uint32_t bin_to_uint32(const char * const s) {
+static uint32_t bin_to_uint32(const char * const s)
+{
 	uint32_t u32 = 0;
 
 	for (int i = 0; i < 32; i ++) {
@@ -123,7 +129,8 @@ static uint32_t bin_to_uint32(const char * const s) {
 	return u32;
 }
 
-static int cosim_iface_read(afbd_iface_t *iface, const uint8_t addr, uint32_t * const data) {
+static int cosim_iface_read(afbd_iface_t *iface, const uintptr_t addr, uint32_t *const data)
+{
 	const uint8_t byte_addr = addr << 2;
 
 	if (delay_function) {
@@ -163,12 +170,14 @@ static int cosim_iface_read(afbd_iface_t *iface, const uint8_t addr, uint32_t * 
 }
 
 
-static int cosim_iface_readb(afbd_iface_t *iface, const uint8_t addr, uint32_t * buf, size_t count) {
+static int cosim_iface_readb(afbd_iface_t *iface, const uintptr_t addr, uint32_t * buf, size_t count)
+{
 	fprintf(stderr, "cosim iface: cosim_iface_readb unimplemented");
 	exit(EXIT_FAILURE);
 }
 
-static void cosim_iface_atexit(void) {
+static void cosim_iface_atexit(void)
+{
 	static bool atexit = false;
 	if (atexit || write_fifo == NULL || read_fifo == NULL) {
 		return;
@@ -178,7 +187,8 @@ static void cosim_iface_atexit(void) {
 	atexit = false;
 }
 
-void cosim_iface_init(char *wr_fifo_path, char *rd_fifo_path, delay_function_t delay_func) {
+void cosim_iface_init(char *wr_fifo_path, char *rd_fifo_path, delay_function_t delay_func)
+{
 	write_fifo_path = wr_fifo_path;
 	read_fifo_path = rd_fifo_path;
 	delay_function = delay_func;
@@ -202,7 +212,8 @@ void cosim_iface_init(char *wr_fifo_path, char *rd_fifo_path, delay_function_t d
 	}
 }
 
-afbd_iface_t cosim_iface_iface(void) {
+afbd_iface_t cosim_iface_iface(void)
+{
 	afbd_iface_t iface = {
 		read: cosim_iface_read,
 		write: cosim_iface_write,
@@ -212,7 +223,8 @@ afbd_iface_t cosim_iface_iface(void) {
 	return iface;
 }
 
-static void cosim_iface_print_stats(void) {
+static void cosim_iface_print_stats(void)
+{
 	printf("cosim iface: transactions statistics:\n"
 		"  Write Count: %d\n"
 		"  Read Count:  %d\n"
@@ -221,7 +233,8 @@ static void cosim_iface_print_stats(void) {
 	);
 }
 
-void cosim_iface_end(int status) {
+void cosim_iface_end(int status)
+{
 	printf("cosim iface: ending with status %d\n", status);
 
 	int count;
