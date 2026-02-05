@@ -4,6 +4,9 @@
 #ifndef _AFBD_{{.BlockName}}_H_
 #define _AFBD_{{.BlockName}}_H_
 
+#define AFBD_{{.BlockName}}_OWN_ALIGNED_SIZE {{.OwnAlignedSize}}
+#define AFBD_{{.BlockName}}_ALIGNED_SIZE {{.AlignedSize}}
+
 #include "afbd.h"
 {{.Code}}
 #endif // _AFBD_{{.BlockName}}_H_

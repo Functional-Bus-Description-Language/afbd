@@ -23,8 +23,10 @@ var blockSourceTmplStr string
 var blockSourceTmpl = template.Must(template.New("C-Sync source").Parse(blockSourceTmplStr))
 
 type BlockHFormatters struct {
-	BlockName string
-	Code      string
+	BlockName      string
+	OwnAlignedSize int64
+	AlignedSize    int64
+	Code           string
 }
 
 type BlockCFormatters struct {
@@ -35,8 +37,10 @@ func genBlock(b utils.Block, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	hFmts := BlockHFormatters{
-		BlockName: b.Name,
-		Code:      "",
+		BlockName:      b.Name,
+		OwnAlignedSize: b.Block.Sizes.OwnAligned,
+		AlignedSize:    b.Block.Sizes.Aligned,
+		Code:           "",
 	}
 	cFmts := BlockCFormatters{Code: ""}
 
