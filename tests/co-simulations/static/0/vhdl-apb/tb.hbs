@@ -12,7 +12,7 @@ namespace eval afbd::vhdl-apb::static-0 {
       $hdl -path autogen/$ctx/tb-$sw \
       $sw -path autogen/$ctx/tb-$sw \
       json -path autogen/$ctx \
-      [hbs::CoreDir]/../bus.fbd
+      [hbs::ThisCoreDir]/../bus.fbd
 
     hbs::AddDep $hdl\::cosim::src
     hbs::AddFile *.vhd
